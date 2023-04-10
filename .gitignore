@@ -11,7 +11,9 @@ src/*.bin
 src/*.asset
 assets/TILE_*.m3if
 compile_commands.json
+assets/icon.m3ifp
+assets/icon_cropped.png
+assets/icon_full.m3ifp
 .cache
 *.bin
 *.iso
-
