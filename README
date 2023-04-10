@@ -1,0 +1,28 @@
+A tetris clone for MES (https://github.com/menga-team/MES).
+
+This project should act as a more advanced example for creating your
+own MES games.  It implements a modern tetris game with the SRS,
+ability to hold tetrominos and a preview of the next tetrominos.
+
+You can play it either in single player or challange a friend to
+multiplayer.  The multiplayer mode uses similar mechanics to the
+Gameboy version.
+
+For more extensive instructions on playing the game, please see the
+provided INSTRUCTIONS file.
+
+* How to run
+
+This project uses mvm.  Install it from:
+https://github.com/menga-team/mes-version-manager.
+
+Run mvm update to initialize the project.
+
+To simulate run:
+$ make simulate
+
+To create a iso file run:
+$ make iso
+
+To flash it for testing run:
+$ make flash
