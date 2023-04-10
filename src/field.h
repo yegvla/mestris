@@ -6,10 +6,16 @@
 #include <stdint.h>
 
 /*
- * 19|
- * 18|
- * 17|
- * 16|
+ * Tetrominos should be spawned at 19.  If they can't spawn at 19,
+ * they should spawn at 20.  If they can't spawn at 20 then the player
+ * lost.
+ *
+ * 21|    NOT VISIBLE
+ * 20|-------------------- <- only 2 pixels of
+ * 19|                        20 are visible.
+ * 18|      []
+ * 17|  [][][]
+ * 16|     ^ POS(2, 17)
  * 15|
  * 14|
  * 13|
@@ -29,29 +35,17 @@
  *    0 1 2 3 4 5 6 7 8 9
  */
 
+
+
 #define FIELD_WIDTH 10
-#define FIELD_HEIGHT 20
+#define FIELD_HEIGHT 22
+#define FIELD_OBSCURE 8
+#define FIELD_OBSCURED_BYTES                                                   \
+    ((FIELD_OBSCURE * FIELD_RESOLUTION * FIELD_WIDTH * BUFFER_BPP) / 8)
 #define FIELD_RESOLUTION 5
 
-/**
- * @param red: 0b000 - 0b111
- * @param green: 0b000 - 0b111
- * @param blue: 0b000 - 0b111
- * Generates a port config given the 3 colors.
- */
-#define COLOR(red, green, blue)                                                \
-    (uint16_t)(((red & 0b100) >> 1) | ((red & 0b010) << 9) |                   \
-               ((red & 0b001) << 11) | ((green & 0b100) << 10) |               \
-               ((green & 0b010) << 12) | ((green & 0b001) << 14) |             \
-               ((blue & 0b100) << 5) | ((blue & 0b010) << 7) |                 \
-               ((blue & 0b001) << 9))
-
-
-static const uint16_t PALETTES[][8] = {
-    // LEVEL 1: RED & BLUE
-    {COLOR(0, 0, 0), COLOR(7, 7, 7), COLOR(7, 4, 5), COLOR(4, 1, 1),
-     COLOR(3, 0, 1), COLOR(4, 6, 7), COLOR(1, 3, 4), COLOR(0, 2, 4)},
-};
+#define FIELD_Y_SPAWN 19
+#define FIELD_X_SPAWN 4
 
 typedef buffer_t field_t;
 
@@ -74,6 +68,5 @@ uint8_t field_clear_lines(field_t *field);
 // deg = 2  -> 180°
 vec2i8 tetromino_rotate(tetromino_t *tet, coord_t pos, field_t *field,
                         int8_t deg);
-
 
 #endif // FIELD_H

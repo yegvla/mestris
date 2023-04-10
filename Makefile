@@ -6,11 +6,13 @@ assets/TILE_%.m3if: $(wildcard tiles/*.png)
 		cd .mes/gpu/image2mes; cargo run -- -i ../../../$${file} -c $(TILE_MAP) -t bin -o ../../../assets/$${base}.m3if ; \
 	done
 
-simulate: assets/TILE_%.m3if
+tiles: assets/TILE_%.m3if
+
+simulate: tiles
 	mvm simulate
 
-flash: assets/TILE_%.m3if
+flash: tiles
 	mvm flash
 
-iso: assets/TILE_%.m3if
+iso: tiles
 	cd .mbs; make iso
