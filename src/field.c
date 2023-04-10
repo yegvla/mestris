@@ -82,7 +82,7 @@ uint8_t field_clear_lines(field_t *field) {
             for (uint8_t x = 0; x < FIELD_WIDTH; ++x) {
                 field_clear_tile(field, POS(x, y));
             }
-            for (uint8_t move_y = FIELD_HEIGHT - y; move_y < FIELD_HEIGHT; --y) {
+            for (uint8_t move_y = FIELD_HEIGHT - y; move_y > 0; --y) {
                 for (uint8_t px_y = 0; px_y < FIELD_RESOLUTION; ++px_y) {
                     for (uint8_t px_x = 0; px_x < FIELD_WIDTH; ++px_x) {
                         uint8_t abs_px_y = px_y + (move_y * FIELD_RESOLUTION);
