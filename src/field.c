@@ -4,9 +4,6 @@
 #include "tetromino.h"
 #include <stdint.h>
 
-#define VEC2_MUL(VEC, MUL)                                                     \
-    (typeof(VEC)) { .x = (VEC).x * MUL, .y = (VEC).y * MUL, }
-
 field_t field_create() {
     field_t field = buffer_alloc((screen_size_t){
         .x = FIELD_WIDTH * FIELD_RESOLUTION,
@@ -37,7 +34,7 @@ bool field_try_draw_tetromino(field_t *field, coord_t pos, tetromino_t *tet) {
 
 void field_draw_tile(field_t *field, coord_t pos, tile_t tile) {
     pos.y = FIELD_HEIGHT - 1 - pos.y;
-    coord_t px_pos = VEC2_MUL(pos, FIELD_RESOLUTION);
+    coord_t px_pos = VEC2_SCALE(pos, FIELD_RESOLUTION);
     const pixel_t *pixels = texture_get_pixles(tile.texture);
     const buffer_t texture = (buffer_t){
         .pixels = (void *)pixels,
@@ -50,11 +47,12 @@ void field_draw_tile(field_t *field, coord_t pos, tile_t tile) {
             buffer_set_pixel(field, VEC2_ADD(px_pos, POS(x, y)), pixel);
         }
     }
+
 }
 
 void field_clear_tile(field_t *field, coord_t pos) {
     pos.y = FIELD_HEIGHT - 1 - pos.y;
-    coord_t px_pos = VEC2_MUL(pos, FIELD_RESOLUTION);
+    coord_t px_pos = VEC2_SCALE(pos, FIELD_RESOLUTION);
     for (uint8_t x = 0; x < FIELD_RESOLUTION; ++x) {
         for (uint8_t y = 0; y < FIELD_RESOLUTION; ++y) {
             buffer_set_pixel(field, VEC2_ADD(px_pos, POS(x, y)), COLOR_BG);
@@ -64,8 +62,8 @@ void field_clear_tile(field_t *field, coord_t pos) {
 
 bool field_is_air(field_t *field, coord_t pos) {
     pos.y = FIELD_HEIGHT - 1 - pos.y;
-    coord_t px_pos = VEC2_MUL(pos, FIELD_RESOLUTION);
-    return buffer_get_pixel(field, px_pos) != COLOR_BG;
+    coord_t px_pos = VEC2_SCALE(pos, FIELD_RESOLUTION);
+    return buffer_get_pixel(field, px_pos) == COLOR_BG;
 }
 
 uint8_t field_clear_lines(field_t *field) {
@@ -84,7 +82,7 @@ uint8_t field_clear_lines(field_t *field) {
             for (uint8_t x = 0; x < FIELD_WIDTH; ++x) {
                 field_clear_tile(field, POS(x, y));
             }
-            for (uint8_t move_y = FIELD_HEIGHT - y; move_y > 0; --y) {
+            for (uint8_t move_y = FIELD_HEIGHT - y; move_y < FIELD_HEIGHT; --y) {
                 for (uint8_t px_y = 0; px_y < FIELD_RESOLUTION; ++px_y) {
                     for (uint8_t px_x = 0; px_x < FIELD_WIDTH; ++px_x) {
                         uint8_t abs_px_y = px_y + (move_y * FIELD_RESOLUTION);

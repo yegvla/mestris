@@ -21,13 +21,6 @@ typedef struct {
     int8_t y;
 } vec2i8;
 
-#define VEC2_ADD(LHS, RHS)                                                     \
-    (typeof(LHS)) { .x = (LHS).x + (RHS).x, .y = (LHS).y + (RHS).y, }
-
-#define VEC2_SUB(LHS, RHS)                                                     \
-    (typeof(LHS)) { .x = (LHS).x - (RHS).x, .y = (LHS).y - (RHS).y, }
-
-
 /* 0,0 is the center of every piece.  Every specified coordinate will
  * be filled with one tile.  4 Coordinates make up 1 teromino.
  *

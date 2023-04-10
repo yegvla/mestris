@@ -1,6 +1,8 @@
 /*
+ * This is free and unencumbered software released into the public domain.
+ *
  * This file is a tailored version of the mesgraphics.h file provided
- * with the MES source code, made to suit the needs of this game.
+ * with the MES source code, made to suit the needs for this game.
  *
  * Please feel free to use it.
  */
@@ -22,8 +24,31 @@
 #define BUFFER_POSITION(RECT, COORD)                                           \
     (((COORD).y) * (RECT)->size.x + ((COORD).x))
 #define PIXEL_MASK ((1 << BUFFER_BPP) - 1)
+
 #define POS(X, Y)                                                              \
     (coord_t) { .x = X, .y = Y }
+
+#define VEC2_ADD(LHS, RHS)                                                     \
+    (typeof(LHS)) { .x = (LHS).x + (RHS).x, .y = (LHS).y + (RHS).y, }
+
+#define VEC2_SUB(LHS, RHS)                                                     \
+    (typeof(LHS)) { .x = (LHS).x - (RHS).x, .y = (LHS).y - (RHS).y, }
+
+#define VEC2_MUL(LHS, RHS)                                                     \
+    (typeof(LHS)) { .x = (LHS).x * (RHS).x, .y = (LHS).y * (RHS).y, }
+
+#define VEC2_DIV(LHS, RHS)                                                     \
+    (typeof(LHS)) { .x = (LHS).x / (RHS).x, .y = (LHS).y / (RHS).y, }
+
+#define VEC2_SCALE(VEC, SCALE)                                                 \
+    (typeof(VEC)) { .x = (VEC).x * SCALE, .y = (VEC).y * SCALE, }
+
+#define SWAP(A, B)                                                             \
+    {                                                                          \
+        typeof(*(A)) _swap_temp = *(A);                                        \
+        *(A) = *(B);                                                           \
+        *(B) = _swap_temp;                                                     \
+    }
 
 /// Only the first 3 bytes are used.
 typedef uint8_t pixel_t;
@@ -38,17 +63,11 @@ typedef struct {
     void *pixels;
 } buffer_t;
 
-static inline void swap(uint8_t *a, uint8_t *b) {
-    uint8_t temp = *a;
-    *a = *b;
-    *b = temp;
-}
-
-static void coord_swap(coord_t *coord) { swap(&coord->x, &coord->y); }
+static void coord_swap(coord_t *coord) { SWAP(&coord->x, &coord->y); }
 
 static void coord_exchange(coord_t *a, coord_t *b) {
-    swap(&a->x, &b->x);
-    swap(&a->y, &b->y);
+    SWAP(&a->x, &b->x);
+    SWAP(&a->y, &b->y);
 }
 
 static buffer_t buffer_alloc(screen_size_t size) {

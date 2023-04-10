@@ -9,7 +9,6 @@
 #include "tetris.h"
 #include <stdint.h>
 
-
 tetromino_t tetromino_create(shape_t shape, texture_t texture, color_t color) {
     return (tetromino_t){.shape = shape,
                          .rotation = DEG_0,
@@ -51,9 +50,7 @@ vec2i8 tetromino_rotate(tetromino_t *tet, coord_t pos, field_t *field,
     uint8_t kick = 0;
     bool has_room = false;
     for (; kick < 5; ++kick) {
-        if (!field_try_draw_tetromino(field, VEC2_ADD(pos, tests[kick]), tet)) {
-            continue;
-        } else {
+        if (field_try_draw_tetromino(field, VEC2_ADD(pos, tests[kick]), tet)) {
             has_room = true;
             break;
         }

@@ -4,6 +4,7 @@
 #include "gfx.h"
 #include <gpu.h>
 #include <mes.h>
+#include <input.h>
 
 uint8_t level;
 
