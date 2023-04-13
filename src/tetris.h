@@ -30,11 +30,15 @@
                ((blue & 0b100) << 5) | ((blue & 0b010) << 7) |                 \
                ((blue & 0b001) << 9))
 
+#define PALETTE_RED COLOR(7, 4, 5), COLOR(4, 1, 1), COLOR(3, 0, 1)
+#define PALETTE_BLUE COLOR(4, 6, 7), COLOR(1, 3, 4), COLOR(0, 2, 4)
 
 static const uint16_t PALETTES[][8] = {
-    // LEVEL 1: RED & BLUE
-    {COLOR(0, 0, 0), COLOR(7, 7, 7), COLOR(7, 4, 5), COLOR(4, 1, 1),
-     COLOR(3, 0, 1), COLOR(4, 6, 7), COLOR(1, 3, 4), COLOR(0, 2, 4)},
+    // Debug level
+    [0] = {COLOR(0, 0, 0), COLOR(7, 7, 7), COLOR(7, 0, 0), COLOR(0, 7, 0),
+           COLOR(0, 0, 7), COLOR(7, 7, 0), COLOR(7, 0, 7), COLOR(0, 7, 7)},
+    // Red & Blue
+    [1] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_RED, PALETTE_BLUE},
 };
 
 #endif // TETRIS_H

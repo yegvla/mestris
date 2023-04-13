@@ -7,6 +7,7 @@
 #include "field.h"
 #include "gfx.h"
 #include "tetris.h"
+#include <rng.h>
 #include <stdint.h>
 
 tetromino_t tetromino_create(shape_t shape, texture_t texture, color_t color) {
@@ -61,6 +62,16 @@ vec2i8 tetromino_rotate(tetromino_t *tet, coord_t pos, field_t *field,
     } else {
         return (vec2i8){0, 0};
     }
+}
+
+tetromino_t tetromino_random(void) {
+    uint32_t random = rng_u32();
+    return (tetromino_t){.rotation = DEG_0,
+                         .shape = random % 7,
+                         .style = {
+                             .color = random & 1,
+                             .texture = 1 + (random & 1),
+                         }};
 }
 
 const pixel_t *texture_get_pixles(texture_t texture) {

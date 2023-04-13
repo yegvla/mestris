@@ -53,6 +53,8 @@ field_t field_create();
 
 void field_draw_tetromino(field_t *field, coord_t pos, tetromino_t *tet);
 
+void field_clear_tetromino(field_t *field, coord_t pos, tetromino_t *tet);
+
 void field_draw_tile(field_t *field, coord_t pos, tile_t tile);
 
 bool field_try_draw_tetromino(field_t *field, coord_t pos, tetromino_t *tet);

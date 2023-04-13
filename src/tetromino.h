@@ -128,6 +128,8 @@ typedef struct {
 
 tetromino_t tetromino_create(shape_t shape, texture_t texture, color_t color);
 
+tetromino_t tetromino_random(void);
+
 const pixel_t* texture_get_pixles(texture_t texture);
 
 color_t pixel_apply_color(pixel_t pixel, color_t color);

@@ -1,7 +1,9 @@
 #include "field.h"
 #include "gfx.h"
+#include "gpu.h"
 #include "tetris.h"
 #include "tetromino.h"
+#include "timer.h"
 #include <stdint.h>
 
 field_t field_create() {
@@ -18,6 +20,14 @@ void field_draw_tetromino(field_t *field, coord_t pos, tetromino_t *tet) {
     for (uint8_t i = 0; i < 4; ++i) {
         vec2i8 tile_pos = tiles[i];
         field_draw_tile(field, VEC2_ADD(pos, tile_pos), tet->style);
+    }
+}
+
+void field_clear_tetromino(field_t *field, coord_t pos, tetromino_t *tet) {
+    const vec2i8 *tiles = SHAPES[tet->shape][tet->rotation];
+    for (uint8_t i = 0; i < 4; ++i) {
+        vec2i8 tile_pos = tiles[i];
+        field_clear_tile(field, VEC2_ADD(pos, tile_pos));
     }
 }
 
@@ -47,7 +57,6 @@ void field_draw_tile(field_t *field, coord_t pos, tile_t tile) {
             buffer_set_pixel(field, VEC2_ADD(px_pos, POS(x, y)), pixel);
         }
     }
-
 }
 
 void field_clear_tile(field_t *field, coord_t pos) {
