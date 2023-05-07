@@ -72,6 +72,7 @@ void field_clear_tile(field_t *field, coord_t pos) {
 bool field_is_air(field_t *field, coord_t pos) {
     pos.y = FIELD_HEIGHT - 1 - pos.y;
     coord_t px_pos = VEC2_SCALE(pos, FIELD_RESOLUTION);
+    px_pos.x += 2; // hack for not detecting placement prediction.
     return buffer_get_pixel(field, px_pos) == COLOR_BG;
 }
 
@@ -106,4 +107,49 @@ uint8_t field_clear_lines(field_t *field) {
         }
     }
     return counter;
+}
+
+vec2i8 field_rotate_tetromino(field_t *field, coord_t pos, tetromino_t *tet,
+                              int8_t deg) {
+    rotation_t original_rot = tet->rotation;
+    rotation_t new_rot = (tet->rotation + deg) & 0b11;
+    const vec2i8(*offset_data)[4][5];
+    switch (tet->shape) {
+    case I:
+        offset_data = &OFFSET_DATA_I;
+        break;
+    case J:
+    case L:
+    case S:
+    case T:
+    case Z:
+        offset_data = &OFFSET_DATA_JLSTZ;
+        break;
+    case O:
+        tet->rotation = new_rot;
+        return OFFSET_DATA_O[tet->rotation];
+    }
+
+    vec2i8 tests[5] = {
+        VEC2_SUB((*offset_data)[original_rot][0], (*offset_data)[new_rot][0]),
+        VEC2_SUB((*offset_data)[original_rot][1], (*offset_data)[new_rot][1]),
+        VEC2_SUB((*offset_data)[original_rot][2], (*offset_data)[new_rot][2]),
+        VEC2_SUB((*offset_data)[original_rot][3], (*offset_data)[new_rot][3]),
+        VEC2_SUB((*offset_data)[original_rot][4], (*offset_data)[new_rot][4]),
+    };
+
+    uint8_t kick = 0;
+    bool has_room = false;
+    for (; kick < 5; ++kick) {
+        if (field_try_draw_tetromino(field, VEC2_ADD(pos, tests[kick]), tet)) {
+            has_room = true;
+            break;
+        }
+    }
+    if (has_room) {
+        tet->rotation = new_rot;
+        return tests[kick];
+    } else {
+        return (vec2i8){0, 0};
+    }
 }

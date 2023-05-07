@@ -19,59 +19,29 @@ tetromino_t tetromino_create(shape_t shape, texture_t texture, color_t color) {
                          }};
 }
 
-vec2i8 tetromino_rotate(tetromino_t *tet, coord_t pos, field_t *field,
-                        int8_t deg) {
-    rotation_t original_rot = tet->rotation;
-    rotation_t new_rot = (tet->rotation + deg) & 0b11;
-    const vec2i8(*offset_data)[4][5];
-    switch (tet->shape) {
-    case I:
-        offset_data = &OFFSET_DATA_I;
-        break;
-    case J:
-    case L:
-    case S:
-    case T:
-    case Z:
-        offset_data = &OFFSET_DATA_JLSTZ;
-        break;
-    case O:
-        tet->rotation = new_rot;
-        return OFFSET_DATA_O[tet->rotation];
-    }
-
-    vec2i8 tests[5] = {
-        VEC2_SUB((*offset_data)[original_rot][0], (*offset_data)[new_rot][0]),
-        VEC2_SUB((*offset_data)[original_rot][1], (*offset_data)[new_rot][1]),
-        VEC2_SUB((*offset_data)[original_rot][2], (*offset_data)[new_rot][2]),
-        VEC2_SUB((*offset_data)[original_rot][3], (*offset_data)[new_rot][3]),
-        VEC2_SUB((*offset_data)[original_rot][4], (*offset_data)[new_rot][4]),
-    };
-
-    uint8_t kick = 0;
-    bool has_room = false;
-    for (; kick < 5; ++kick) {
-        if (field_try_draw_tetromino(field, VEC2_ADD(pos, tests[kick]), tet)) {
-            has_room = true;
-            break;
-        }
-    }
-    if (has_room) {
-        tet->rotation = new_rot;
-        return tests[kick];
-    } else {
-        return (vec2i8){0, 0};
-    }
-}
-
 tetromino_t tetromino_random(void) {
     uint32_t random = rng_u32();
     return (tetromino_t){.rotation = DEG_0,
                          .shape = random % 7,
                          .style = {
-                             .color = random & 1,
-                             .texture = 1 + (random & 1),
+                             .color = ((random >> 4) & 1),
+                             .texture = 1 + ((random >> 5) & 1),
                          }};
+}
+
+void tetromino_random_bag(tetromino_t *bag) {
+    static const uint8_t ALL_SHAPES =
+        BIT(I) | BIT(J) | BIT(L) | BIT(O) | BIT(S) | BIT(T) | BIT(Z);
+    uint8_t bag_index = 0;
+    uint8_t shapes_used = 0x00;
+    while (shapes_used != ALL_SHAPES) {
+        tetromino_t pick = tetromino_random();
+        if (shapes_used & BIT(pick.shape)) {
+            continue;
+        }
+        bag[bag_index++] = pick;
+        shapes_used |= BIT(pick.shape);
+    }
 }
 
 const pixel_t *texture_get_pixles(texture_t texture) {
@@ -85,6 +55,8 @@ const pixel_t *texture_get_pixles(texture_t texture) {
     case GHOST:
         return ASSET_TILE_GHOST_M3IF;
     case GARBAGE:
+        return ASSET_TILE_GARBAGE_M3IF;
+    default:
         return ASSET_TILE_GARBAGE_M3IF;
     }
 }

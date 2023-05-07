@@ -35,8 +35,6 @@
  *    0 1 2 3 4 5 6 7 8 9
  */
 
-
-
 #define FIELD_WIDTH 10
 #define FIELD_HEIGHT 22
 #define FIELD_OBSCURE 8
@@ -68,7 +66,7 @@ uint8_t field_clear_lines(field_t *field);
 // deg = 1  -> clockwise
 // deg = -1 -> counter-clockwise
 // deg = 2  -> 180°
-vec2i8 tetromino_rotate(tetromino_t *tet, coord_t pos, field_t *field,
-                        int8_t deg);
+vec2i8 field_rotate_tetromino(field_t *field, coord_t pos, tetromino_t *tet,
+                              int8_t deg);
 
 #endif // FIELD_H

@@ -5,7 +5,16 @@
 #include <gpu.h>
 #include <stdint.h>
 
-typedef enum { I = 0, J = 1, L = 2, O = 3, S = 4, T = 5, Z = 6 } shape_t;
+typedef enum {
+    I = 0,
+    J = 1,
+    L = 2,
+    O = 3,
+    S = 4,
+    T = 5,
+    Z = 6,
+} shape_t;
+
 typedef enum {
     AIR = 0,
     FILLED = 1,
@@ -13,6 +22,7 @@ typedef enum {
     GHOST = 3,
     GARBAGE = 4
 } texture_t;
+
 typedef enum { DEG_0 = 0, DEG_90 = 1, DEG_180 = 2, DEG_270 = 3 } rotation_t;
 typedef enum { COLOR_A = 0, COLOR_B = 1 } color_t;
 
@@ -130,7 +140,9 @@ tetromino_t tetromino_create(shape_t shape, texture_t texture, color_t color);
 
 tetromino_t tetromino_random(void);
 
-const pixel_t* texture_get_pixles(texture_t texture);
+void tetromino_random_bag(tetromino_t *bag);
+
+const pixel_t *texture_get_pixles(texture_t texture);
 
 color_t pixel_apply_color(pixel_t pixel, color_t color);
 

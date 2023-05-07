@@ -19,22 +19,30 @@ uint8_t start(void) {
         queue[i] = tetromino_random();
     }
 
-    field_t field = field_create();
     gpu_update_palette(PALETTES[level]);
 
+    field_t field = field_create();
+    int8_t bag_index = 0;
+    tetromino_t *bag = (tetromino_t *)malloc(7 * sizeof(tetromino_t));
+    tetromino_random_bag(bag);
     bool game_over = false;
 
     while (!game_over) {
-	tetromino_t tet = tetromino_random();
-	coord_t pos = POS(FIELD_X_SPAWN, FIELD_Y_SPAWN);
-        while (field_try_draw_tetromino(&field, pos, &tet) && pos.y != 0) {
-            field_draw_tetromino(&field, pos, &tet);
+        if (bag_index > 6) {
+            tetromino_random_bag(bag);
+            bag_index = 0;
+        }
+        tetromino_t *tet = &bag[bag_index++];
+        coord_t pos = POS(FIELD_X_SPAWN, FIELD_Y_SPAWN);
+        while (field_try_draw_tetromino(&field, pos, tet) && pos.y != 0) {
+            field_draw_tetromino(&field, pos, tet);
             gpu_send_buf(FRONT_BUFFER, field.size.x,
                          field.size.y - FIELD_OBSCURE, 0, 0,
                          (field.pixels + FIELD_OBSCURED_BYTES));
-	    gpu_wait_for_next_ready();
-	    timer_block_ms(120);
-            field_clear_tetromino(&field, pos, &tet);
+            timer_block_ms(120);
+            gpu_block_ack();
+            gpu_block_frame();
+            field_clear_tetromino(&field, pos, tet);
             pos.y--;
         }
 
@@ -42,17 +50,24 @@ uint8_t start(void) {
             game_over = true;
             break;
         }
-        if (pos.y > 0)
+        if (!field_try_draw_tetromino(&field, pos, tet)) {
             pos.y++;
-        field_draw_tetromino(&field, pos, &tet);
+        }
+        field_draw_tetromino(&field, pos, tet);
+        timer_block_ms(120);
     }
 
     if (game_over) {
         gpu_print_text(FRONT_BUFFER, 50, 50, 1, 0, "GAME OVER");
+        timer_block_ms(1000);
+        goto tetris_quit;
     }
 
     while (true)
         ;
 
+tetris_quit:
     buffer_destory(&field);
+    free(bag);
+    return CODE_EXIT;
 }

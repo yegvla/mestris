@@ -16,13 +16,16 @@
 #include <stdint.h>
 
 #define BUFFER_BPP 3
+
 #define BUFFER_SIZE(SIZE)                                                      \
     (((uint16_t)ceil((float)(BUFFER_BPP * (((SIZE).x) * ((SIZE).y))) / 8.0) %  \
       BUFFER_BPP) *                                                            \
          3 +                                                                   \
      ((BUFFER_BPP * (((SIZE).x) * ((SIZE).y))) / 8))
+
 #define BUFFER_POSITION(RECT, COORD)                                           \
     (((COORD).y) * (RECT)->size.x + ((COORD).x))
+
 #define PIXEL_MASK ((1 << BUFFER_BPP) - 1)
 
 #define POS(X, Y)                                                              \
@@ -49,6 +52,8 @@
         *(A) = *(B);                                                           \
         *(B) = _swap_temp;                                                     \
     }
+
+#define BIT(X) (1 << (X))
 
 /// Only the first 3 bytes are used.
 typedef uint8_t pixel_t;
