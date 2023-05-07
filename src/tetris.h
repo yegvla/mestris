@@ -38,7 +38,7 @@ static const uint16_t PALETTES[][8] = {
     [0] = {COLOR(0, 0, 0), COLOR(7, 7, 7), COLOR(7, 0, 0), COLOR(0, 7, 0),
            COLOR(0, 0, 7), COLOR(7, 7, 0), COLOR(7, 0, 7), COLOR(0, 7, 7)},
     // Red & Blue
-    [1] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_RED, PALETTE_BLUE},
+    [1] = {COLOR(7, 7, 7), COLOR(0, 0, 0), PALETTE_RED, PALETTE_BLUE},
 };
 
 #endif // TETRIS_H

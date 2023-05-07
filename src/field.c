@@ -35,7 +35,11 @@ bool field_try_draw_tetromino(field_t *field, coord_t pos, tetromino_t *tet) {
     const vec2i8 *tiles = SHAPES[tet->shape][tet->rotation];
     for (uint8_t i = 0; i < 4; ++i) {
         vec2i8 tile_pos = tiles[i];
-        if (!field_is_air(field, VEC2_ADD(pos, tile_pos))) {
+        coord_t target_pos = VEC2_ADD(pos, tile_pos);
+        if (target_pos.x >= FIELD_WIDTH || target_pos.y >= FIELD_HEIGHT) {
+            return false;
+        }
+        if (!field_is_air(field, target_pos)) {
             return false;
         }
     }
@@ -113,6 +117,7 @@ vec2i8 field_rotate_tetromino(field_t *field, coord_t pos, tetromino_t *tet,
                               int8_t deg) {
     rotation_t original_rot = tet->rotation;
     rotation_t new_rot = (tet->rotation + deg) & 0b11;
+    tet->rotation = new_rot;
     const vec2i8(*offset_data)[4][5];
     switch (tet->shape) {
     case I:
@@ -126,8 +131,7 @@ vec2i8 field_rotate_tetromino(field_t *field, coord_t pos, tetromino_t *tet,
         offset_data = &OFFSET_DATA_JLSTZ;
         break;
     case O:
-        tet->rotation = new_rot;
-        return OFFSET_DATA_O[tet->rotation];
+        return VEC2_SUB(OFFSET_DATA_O[original_rot], OFFSET_DATA_O[new_rot]);
     }
 
     vec2i8 tests[5] = {
@@ -147,9 +151,9 @@ vec2i8 field_rotate_tetromino(field_t *field, coord_t pos, tetromino_t *tet,
         }
     }
     if (has_room) {
-        tet->rotation = new_rot;
         return tests[kick];
     } else {
+        tet->rotation = original_rot;
         return (vec2i8){0, 0};
     }
 }
