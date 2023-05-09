@@ -24,7 +24,12 @@ typedef enum {
 } texture_t;
 
 typedef enum { DEG_0 = 0, DEG_90 = 1, DEG_180 = 2, DEG_270 = 3 } rotation_t;
-typedef enum { COLOR_A = 0, COLOR_B = 1 } color_t;
+typedef enum {
+    COLOR_A = 0,
+    COLOR_B = 1,
+    COLOR_A_LIGHT = 2,
+    COLOR_B_LIGHT = 3,
+} color_t;
 
 typedef struct {
     int8_t x;
@@ -145,5 +150,9 @@ void tetromino_random_bag(tetromino_t *bag);
 const pixel_t *texture_get_pixles(texture_t texture);
 
 color_t pixel_apply_color(pixel_t pixel, color_t color);
+
+color_t color_get_light_var(color_t color);
+
+color_t color_get_normal_var(color_t color);
 
 #endif // TETROMINO_H

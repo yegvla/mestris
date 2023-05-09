@@ -93,21 +93,34 @@ uint8_t field_clear_lines(field_t *field) {
         // TODO: not very efficient...
         if (is_full) {
             counter++;
+
             for (uint8_t x = 0; x < FIELD_WIDTH; ++x) {
                 field_clear_tile(field, POS(x, y));
             }
-            for (uint8_t move_y = FIELD_HEIGHT - y; move_y > 0; --y) {
+
+            for (uint8_t move_y = y + 1; move_y < FIELD_HEIGHT; ++move_y) {
                 for (uint8_t px_y = 0; px_y < FIELD_RESOLUTION; ++px_y) {
-                    for (uint8_t px_x = 0; px_x < FIELD_WIDTH; ++px_x) {
-                        uint8_t abs_px_y = px_y + (move_y * FIELD_RESOLUTION);
-                        uint8_t dest_abs_px_y =
-                            px_y + ((move_y - 1) * FIELD_RESOLUTION);
+                    for (uint8_t px_x = 0;
+                         px_x < FIELD_WIDTH * FIELD_RESOLUTION; ++px_x) {
+
+                        uint8_t move_y_px =
+                            (FIELD_HEIGHT - 1 - move_y) * FIELD_RESOLUTION +
+                            px_y;
+
+                        uint8_t dest_y_px = (FIELD_HEIGHT - 1 - (move_y - 1)) *
+                                                FIELD_RESOLUTION +
+                                            px_y;
+
                         buffer_set_pixel(
-                            field, POS(dest_abs_px_y, px_x),
-                            buffer_get_pixel(field, POS(abs_px_y, px_x)));
+                            field, POS(px_x, dest_y_px),
+                            buffer_get_pixel(field, POS(px_x, move_y_px)));
+
+                        buffer_set_pixel(field, POS(px_x, move_y_px), COLOR_BG);
                     }
                 }
             }
+            // check the same line again to not skip the moved line.
+            y--;
         }
     }
     return counter;

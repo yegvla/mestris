@@ -62,10 +62,18 @@ const pixel_t *texture_get_pixles(texture_t texture) {
 }
 
 color_t pixel_apply_color(pixel_t pixel, color_t color) {
+    // draw with a lighter color
+    if (color == COLOR_A_LIGHT || color == COLOR_B_LIGHT) {
+        switch (pixel) {
+        case COLOR_A2:
+        case COLOR_A3:
+            pixel -= 1;
+        }
+    }
     // Textures are drawn with the A-color, if we need to draw a
     // B-Color tile then just map all A-colors in the tile to
     // B-colors, thus (+3).
-    if (color == COLOR_B) {
+    if (color == COLOR_B || color == COLOR_B_LIGHT) {
         switch (pixel) {
         case COLOR_A1:
         case COLOR_A2:
@@ -73,5 +81,27 @@ color_t pixel_apply_color(pixel_t pixel, color_t color) {
             return pixel + 3;
         }
     }
+
     return pixel;
 }
+
+color_t color_get_light_var(color_t color) {
+    switch (color) {
+    case COLOR_A:
+    case COLOR_B:
+        return color + 2;
+    default:
+        return color;
+    }
+}
+
+color_t color_get_normal_var(color_t color) {
+    switch (color) {
+    case COLOR_A_LIGHT:
+    case COLOR_B_LIGHT:
+        return color - 2;
+    default:
+        return color;
+    }
+}
+

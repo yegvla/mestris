@@ -17,6 +17,9 @@
 #define COLOR_B2 6
 #define COLOR_B3 7
 
+#define LOCK_TIME 1000
+#define FALL_TIME(LEVEL) (1000 - (LEVEL - 1) * 10)
+
 /**
  * @param red: 0b000 - 0b111
  * @param green: 0b000 - 0b111
@@ -27,8 +30,8 @@
     (uint16_t)(((red & 0b100) >> 1) | ((red & 0b010) << 9) |                   \
                ((red & 0b001) << 11) | ((green & 0b100) << 10) |               \
                ((green & 0b010) << 12) | ((green & 0b001) << 14) |             \
-               ((blue & 0b100) << 5) | ((blue & 0b010) << 7) |                 \
-               ((blue & 0b001) << 9))
+               ((blue & 0b100) << 5) | ((blue & 0b010) << 5) |                 \
+               ((blue & 0b001) << 5))
 
 #define PALETTE_RED COLOR(7, 4, 5), COLOR(4, 1, 1), COLOR(3, 0, 1)
 #define PALETTE_BLUE COLOR(4, 6, 7), COLOR(1, 3, 4), COLOR(0, 2, 4)
