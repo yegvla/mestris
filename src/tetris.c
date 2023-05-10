@@ -120,6 +120,18 @@ uint8_t start(void) {
         }
         tetromino_t *tet = &current_bag[bag_index++];
         coord_t pos = POS(FIELD_X_SPAWN, FIELD_Y_SPAWN);
+
+	// TODO: is this even needed?
+        if (!field_try_draw_tetromino(&field, pos, tet) &&
+            field_try_draw_tetromino(&field, VEC2_ADD(pos, POS(0, 1)), tet)) {
+            pos.y++;
+        }
+
+        if (!field_try_draw_tetromino(&field, pos, tet)) {
+            game_over = true;
+            break;
+        }
+
         uint32_t frames_held[8] = {0};
         uint32_t lock_penalty = 0;
         while (
@@ -193,12 +205,7 @@ uint8_t start(void) {
 
         field_draw_tetromino(&field, pos, tet);
 
-	field_clear_lines(&field);
-
-        if (pos.y >= FIELD_Y_SPAWN) { // TODO: move spawn.
-            game_over = true;
-            break;
-        }
+        field_clear_lines(&field);
     }
 
     if (game_over) {
