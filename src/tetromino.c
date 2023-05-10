@@ -104,4 +104,3 @@ color_t color_get_normal_var(color_t color) {
         return color;
     }
 }
-

@@ -68,20 +68,13 @@ typedef struct {
     void *pixels;
 } buffer_t;
 
-static void coord_swap(coord_t *coord) { SWAP(&coord->x, &coord->y); }
-
-static void coord_exchange(coord_t *a, coord_t *b) {
-    SWAP(&a->x, &b->x);
-    SWAP(&a->y, &b->y);
-}
-
 static buffer_t buffer_alloc(screen_size_t size) {
     return (buffer_t){size, malloc(BUFFER_SIZE(size))};
 }
 
 static void buffer_destory(buffer_t *buf) {
     free(buf->pixels);
-    free(buf);
+    //free(buf);
 }
 
 static void buffer_set_pixel(buffer_t *buf, coord_t pos, pixel_t pixel) {
@@ -98,31 +91,32 @@ static pixel_t buffer_get_pixel(const buffer_t *buf, coord_t pos) {
     return (pixels >> ((7 - (index % 8)) * BUFFER_BPP)) & PIXEL_MASK;
 }
 
-static void buffer_draw_line(buffer_t *buf, coord_t from, coord_t to,
-                             pixel_t color) {
+static void buffer_draw_line(buffer_t *rect, uint8_t x0, uint8_t y0,
+                             uint8_t x1, uint8_t y1, uint8_t color) {
     bool steep = false;
-    if (abs(from.x - to.x) < abs(from.y - to.y)) {
-        coord_swap(&from);
-        coord_swap(&to);
+    if (abs(x0 - x1) < abs(y0 - y1)) {
+        SWAP(&x0, &y0);
+        SWAP(&x1, &y1);
         steep = true;
     }
-    if (from.x > to.x) {
-        coord_exchange(&from, &to);
+    if (x0 > x1) {
+        SWAP(&x0, &x1);
+        SWAP(&y0, &y1);
     }
-    int16_t dx = to.x - from.x;
-    int16_t dy = to.y - from.y;
+    int16_t dx = x1 - x0;
+    int16_t dy = y1 - y0;
     int16_t derror2 = abs(dy) * 2;
     int16_t error2 = 0;
-    uint8_t y = from.y;
-    for (uint8_t x = from.x; x < to.x; ++x) {
+    uint8_t y = y0;
+    for (uint8_t x = x0; x < x1; ++x) {
         if (steep) {
-            buffer_set_pixel(buf, POS(y, x), color);
+            buffer_set_pixel(rect, POS(y, x), color);
         } else {
-            buffer_set_pixel(buf, POS(x, y), color);
+            buffer_set_pixel(rect, POS(x, y), color);
         }
         error2 += derror2;
         if (error2 > dx) {
-            y += (to.y > from.y ? 1 : -1);
+            y += (y1 > y0 ? 1 : -1);
             error2 -= dx * 2;
         }
     }

@@ -17,8 +17,11 @@
 #define COLOR_B2 6
 #define COLOR_B3 7
 
-#define LOCK_TIME 1000
+#define LOCK_TIME (1000)
 #define FALL_TIME(LEVEL) (1000 - (LEVEL - 1) * 10)
+
+#define FIELD_POS_X (55)
+#define FIELD_POS_Y (13)
 
 /**
  * @param red: 0b000 - 0b111
@@ -35,6 +38,8 @@
 
 #define PALETTE_RED COLOR(7, 4, 5), COLOR(4, 1, 1), COLOR(3, 0, 1)
 #define PALETTE_BLUE COLOR(4, 6, 7), COLOR(1, 3, 4), COLOR(0, 2, 4)
+#define PALETTE_GREEN COLOR(4, 6, 4), COLOR(1, 4, 2), COLOR(1, 2, 0)
+#define PALETTE_MAGENTA COLOR(6, 4, 7), COLOR(4, 2, 4), COLOR(2, 1, 3)
 
 static const uint16_t PALETTES[][8] = {
     // Debug level
@@ -42,6 +47,8 @@ static const uint16_t PALETTES[][8] = {
            COLOR(0, 0, 7), COLOR(7, 7, 0), COLOR(7, 0, 7), COLOR(0, 7, 7)},
     // Red & Blue
     [1] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_RED, PALETTE_BLUE},
+    // Green & Magenta
+    [2] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_GREEN, PALETTE_MAGENTA},
 };
 
 #endif // TETRIS_H
