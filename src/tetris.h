@@ -17,8 +17,38 @@
 #define COLOR_B2 6
 #define COLOR_B3 7
 
+#define MAX(a, b)                                                              \
+    ({                                                                         \
+        __typeof__(a) _a = (a);                                                \
+        __typeof__(b) _b = (b);                                                \
+        _a > _b ? _a : _b;                                                     \
+    })
+
 #define LOCK_TIME (1000)
-#define FALL_TIME(LEVEL) (1000 - (LEVEL - 1) * 10)
+#define FALL_TIME(LEVEL) (MAX((1000 - (LEVEL - 1) * 80), 40))
+
+#define SCORE_SINGLE(LEVEL) (100 * LEVEL)
+#define SCORE_DOUBLE(LEVEL) (300 * LEVEL)
+#define SCORE_MINI_TSPIN_DOUBLE(LEVEL) (400 * LEVEL)
+#define SCORE_TRIPLE(LEVEL) (500 * LEVEL)
+#define SCORE_B2B_MINI_TSPIN_DOUBLE(LEVEL) (600 * LEVEL)
+#define SCORE_TETRIS(LEVEL) (800 * LEVEL)
+#define SCORE_TSPIN_SINGLE(LEVEL) (SCORE_TETRIS(LEVEL))
+#define SCORE_B2B_TETRIS(LEVEL) (1200 * LEVEL)
+#define SCORE_B2B_TSPIN_SINGLE(LEVEL) (SCORE_B2B_TETRIS(LEVEL))
+#define SCORE_TSPIN_DOUBLE(LEVEL) (SCORE_B2B_TETRIS(LEVEL))
+#define SCORE_TSPIN_TRIPLE(LEVEL) (1600 * LEVEL)
+#define SCORE_B2B_TSPIN_DOUBLE(LEVEL) (1800 * LEVEL)
+#define SCORE_B2B_TSPIN_TRIPLE(LEVEL) (2400 * LEVEL)
+
+typedef enum {
+    BROKEN,
+    TETRIS,
+    TSPIN_SINGLE,
+    TSPIN_DOUBLE,
+    TSPIN_TRIPPLE,
+    TSPIN_DOUBLE_MINI,
+} b2b_t;
 
 #define FIELD_POS_X (55)
 #define FIELD_POS_Y (13)
@@ -40,6 +70,8 @@
 #define PALETTE_BLUE COLOR(4, 6, 7), COLOR(1, 3, 4), COLOR(0, 2, 4)
 #define PALETTE_GREEN COLOR(4, 6, 4), COLOR(1, 4, 2), COLOR(1, 2, 0)
 #define PALETTE_MAGENTA COLOR(6, 4, 7), COLOR(4, 2, 4), COLOR(2, 1, 3)
+#define PALETTE_ORANGE COLOR(6, 4, 7), COLOR(4, 2, 4), COLOR(2, 1, 3)
+#define PALETTE_CYAN COLOR(6, 4, 7), COLOR(4, 2, 4), COLOR(2, 1, 3)
 
 static const uint16_t PALETTES[][8] = {
     // Debug level
@@ -49,6 +81,7 @@ static const uint16_t PALETTES[][8] = {
     [1] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_RED, PALETTE_BLUE},
     // Green & Magenta
     [2] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_GREEN, PALETTE_MAGENTA},
+    // Orange & Cyan
 };
 
 #endif // TETRIS_H

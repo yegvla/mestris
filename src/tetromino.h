@@ -13,6 +13,7 @@ typedef enum {
     S = 4,
     T = 5,
     Z = 6,
+    NONE = 7,
 } shape_t;
 
 typedef enum {
@@ -142,6 +143,8 @@ typedef struct {
 } tetromino_t;
 
 tetromino_t tetromino_create(shape_t shape, texture_t texture, color_t color);
+
+tetromino_t tetromino_create_empty(void);
 
 tetromino_t tetromino_random(void);
 

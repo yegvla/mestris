@@ -48,7 +48,7 @@ static void next_level() {
 }
 
 static void update_score(uint32_t score) {
-    char txt[6];
+    char txt[10];
     sprintf(txt, "%05i", score);
     gpu_print_text(FRONT_BUFFER, 9, 54, COLOR_FG, COLOR_BG, txt);
     gpu_print_text(BACK_BUFFER, 9, 54, COLOR_FG, COLOR_BG, txt);
@@ -57,7 +57,7 @@ static void update_score(uint32_t score) {
 
 static void add_score(uint32_t *score, uint32_t add, uint8_t steps) {
     if (add > 0) {
-        char txt[6];
+        char txt[10];
         uint32_t tmp = *score;
         *score += add;
         for (uint8_t i = 0; i < steps; ++i) {
@@ -75,14 +75,19 @@ typedef struct {
     bool rerender;
     bool lock;
     bool place;
+    bool respawn;
 } instructions_t;
 
 static instructions_t process_controls(field_t *field, tetromino_t *tet,
                                        coord_t *pos, coord_t ghost_pos,
+                                       tetromino_t *hold, bool has_respawned,
+                                       tetromino_t *current_bag,
+                                       uint8_t *bag_index,
                                        uint32_t *frames_held, uint32_t *score) {
     bool rerender = false;
     bool lock = false;
     bool place = false;
+    bool respawn = false;
     update_frames_held(frames_held);
 
     // move left
@@ -109,6 +114,8 @@ static instructions_t process_controls(field_t *field, tetromino_t *tet,
             pos->y--;
         } else {
             lock = true;
+            // for a better experience.
+            frames_held[BUTTON_DOWN] = 0;
         }
         rerender = true;
     }
@@ -133,13 +140,25 @@ static instructions_t process_controls(field_t *field, tetromino_t *tet,
 
     // hard drop
     if (frames_held[BUTTON_UP] == 1) {
-	add_score(score, pos->y - ghost_pos.y, 2);
+        add_score(score, (pos->y - ghost_pos.y) * 2, 2);
         *pos = ghost_pos;
         rerender = true;
         place = true;
     }
 
-    return (instructions_t){rerender, lock, place};
+    if (frames_held[BUTTON_SELECT] == 1 && !has_respawned) {
+        if (hold->shape == NONE) {
+            *hold = *tet;
+            *tet = current_bag[*bag_index++];
+        } else {
+            tetromino_t held = *hold;
+            *hold = *tet;
+            *tet = held;
+        }
+        respawn = true;
+    }
+
+    return (instructions_t){rerender, lock, place, respawn};
 }
 
 static void update_next(uint8_t bag_index, tetromino_t *current_bag,
@@ -159,15 +178,27 @@ static void update_next(uint8_t bag_index, tetromino_t *current_bag,
         buffer_draw_tetromino(&next_buf, POS(1, 14 - (4 * next_index++)), next);
     }
 
-    gpu_send_buf(FRONT_BUFFER, next_buf.size.x, next_buf.size.y, 115, 26,
+    gpu_send_buf(FRONT_BUFFER, next_buf.size.x, next_buf.size.y, 125, 26,
                  next_buf.pixels);
-    gpu_send_buf(BACK_BUFFER, next_buf.size.x, next_buf.size.y, 115, 26,
+    gpu_send_buf(BACK_BUFFER, next_buf.size.x, next_buf.size.y, 125, 26,
                  next_buf.pixels);
     gpu_block_ack();
     buffer_destory(&next_buf);
 }
 
-static void update_hold(tetromino_t hold) {}
+static void update_hold(tetromino_t *hold) {
+    buffer_t hold_buf = buffer_alloc((screen_size_t){.x = 20, .y = 20});
+    memset(hold_buf.pixels, 0x00, BUFFER_SIZE(hold_buf.size));
+    if (hold->shape != NONE) {
+        buffer_draw_tetromino(&hold_buf, POS(1, 1), hold);
+    }
+    gpu_send_buf(FRONT_BUFFER, hold_buf.size.x, hold_buf.size.y, 15, 80,
+                 hold_buf.pixels);
+    gpu_send_buf(BACK_BUFFER, hold_buf.size.x, hold_buf.size.y, 15, 80,
+                 hold_buf.pixels);
+    gpu_block_ack();
+    buffer_destory(&hold_buf);
+}
 
 static void update_ghost(field_t *field, tetromino_t *original,
                          tetromino_t *ghost, coord_t pos, coord_t *ghost_pos) {
@@ -180,6 +211,10 @@ static void update_ghost(field_t *field, tetromino_t *original,
                                     ghost)) {
         ghost_pos->y--;
     }
+}
+
+static void display_message(char *msg) {
+    gpu_print_text(FRONT_BUFFER, 54, 4, COLOR_FG, COLOR_BG, msg);
 }
 
 uint8_t start(void) {
@@ -204,6 +239,8 @@ uint8_t start(void) {
     next_level();
     uint32_t score = 0;
     update_score(score);
+    uint32_t lines_cleared = 0;
+    b2b_t last_b2b = BROKEN;
 
     rng_init();
     tetromino_t queue[5];
@@ -214,14 +251,18 @@ uint8_t start(void) {
     gpu_update_palette(PALETTES[level]);
 
     field_t field = field_create();
-    int8_t bag_index = 0;
+    uint8_t bag_index = 0;
     tetromino_t bag_a[7];
     tetromino_t bag_b[7];
     tetromino_t *current_bag = bag_a;
     tetromino_t *other_bag = bag_b;
     tetromino_random_bag(bag_a);
     tetromino_random_bag(bag_b);
+    tetromino_t hold = tetromino_create_empty();
+
     bool game_over = false;
+    coord_t pos;
+    coord_t ghost_pos;
 
     uint32_t frames_held[8] = {0};
 
@@ -242,9 +283,11 @@ uint8_t start(void) {
 
         tetromino_t *tet = &current_bag[bag_index++];
         tetromino_t ghost;
+        bool has_respawned = false;
 
-        coord_t pos = POS(FIELD_X_SPAWN, FIELD_Y_SPAWN);
-        coord_t ghost_pos = pos;
+    respawn:
+        pos = POS(FIELD_X_SPAWN, FIELD_Y_SPAWN);
+        ghost_pos = pos;
 
         // TODO: is this even needed?
         if (!field_try_draw_tetromino(&field, pos, tet) &&
@@ -274,7 +317,14 @@ uint8_t start(void) {
                 }
 
                 instructions_t inst = process_controls(
-                    &field, tet, &pos, ghost_pos, frames_held, &score);
+                    &field, tet, &pos, ghost_pos, &hold, has_respawned,
+                    current_bag, &bag_index, frames_held, &score);
+
+                if (inst.respawn) {
+		    update_hold(&hold);
+                    has_respawned = true;
+                    goto respawn;
+                }
 
                 if (inst.rerender) {
                     update_ghost(&field, tet, &ghost, pos, &ghost_pos);
@@ -299,8 +349,8 @@ uint8_t start(void) {
                     break;
                 }
 
-                // TODO...
-                if (score >= (level * 10 * 100)) {
+                if (lines_cleared >= level * 10) {
+                    lines_cleared -= level * 10;
                     next_level();
                 }
 
@@ -323,8 +373,15 @@ uint8_t start(void) {
         uint32_t wait_until = timer_get_ms() + LOCK_TIME - lock_penalty;
         lock_penalty += 200;
         while (wait_until > timer_get_ms()) {
-            instructions_t inst =
-                process_controls(&field, tet, &pos, pos, frames_held, &score);
+            instructions_t inst = process_controls(
+                &field, tet, &pos, ghost_pos, &hold, has_respawned, current_bag,
+                &bag_index, frames_held, &score);
+
+            if (inst.respawn) {
+		update_hold(&hold);
+                has_respawned = true;
+                goto respawn;
+            }
 
             if (inst.rerender) {
                 field_draw_tetromino(&field, pos, tet);
@@ -350,7 +407,42 @@ uint8_t start(void) {
 
         field_draw_tetromino(&field, pos, tet);
 
-        add_score(&score, field_clear_lines(&field) * 100, 8);
+        uint8_t lines = field_clear_lines(&field);
+        lines_cleared += lines;
+
+        uint32_t reward = 0;
+
+        switch (lines) {
+        case 1:
+            reward = SCORE_SINGLE(level);
+            last_b2b = BROKEN;
+            break;
+        case 2:
+            display_message("DOUBLE");
+            reward = SCORE_DOUBLE(level);
+            last_b2b = BROKEN;
+            break;
+        case 3:
+            display_message("TRIPLE");
+            reward = SCORE_TRIPLE(level);
+            last_b2b = BROKEN;
+            break;
+        case 4:
+            if (last_b2b == TETRIS) {
+                display_message("B2B TETRIS");
+                reward = SCORE_B2B_TETRIS(level);
+            } else {
+                display_message("TETRIS");
+                reward = SCORE_TETRIS(level);
+            }
+            last_b2b = TETRIS;
+            break;
+        }
+
+        add_score(&score, reward, 8);
+        if (reward > SCORE_SINGLE(level)) {
+            display_message("          ");
+        }
     }
 
     if (game_over) {

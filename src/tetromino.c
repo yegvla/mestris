@@ -19,6 +19,15 @@ tetromino_t tetromino_create(shape_t shape, texture_t texture, color_t color) {
                          }};
 }
 
+tetromino_t tetromino_create_empty(void) {
+    return (tetromino_t){.shape = NONE,
+                         .rotation = DEG_0,
+                         .style = {
+                             .texture = 0,
+                             .color = 0,
+                         }};
+}
+
 tetromino_t tetromino_random(void) {
     uint32_t random = rng_u32();
     return (tetromino_t){.rotation = DEG_0,
