@@ -55,13 +55,13 @@ static void update_score(uint32_t score) {
     gpu_block_ack();
 }
 
-static void add_score(uint32_t *score, uint32_t add) {
-    if (*score > 0) {
+static void add_score(uint32_t *score, uint32_t add, uint8_t steps) {
+    if (add > 0) {
         char txt[6];
         uint32_t tmp = *score;
         *score += add;
-        for (uint8_t i = 0; i < 8; ++i) {
-            tmp += add / 8;
+        for (uint8_t i = 0; i < steps; ++i) {
+            tmp += add / steps;
             sprintf(txt, "%05i", tmp);
             gpu_print_text(FRONT_BUFFER, 9, 54, COLOR_FG, COLOR_BG, txt);
             gpu_block_ack();
@@ -73,13 +73,15 @@ static void add_score(uint32_t *score, uint32_t add) {
 
 typedef struct {
     bool rerender;
+    bool lock;
     bool place;
 } instructions_t;
 
 static instructions_t process_controls(field_t *field, tetromino_t *tet,
-                                       coord_t *pos, uint32_t *frames_held,
-                                       uint32_t *score) {
+                                       coord_t *pos, coord_t ghost_pos,
+                                       uint32_t *frames_held, uint32_t *score) {
     bool rerender = false;
+    bool lock = false;
     bool place = false;
     update_frames_held(frames_held);
 
@@ -106,7 +108,7 @@ static instructions_t process_controls(field_t *field, tetromino_t *tet,
         if (field_try_draw_tetromino(field, VEC2_SUB(*pos, POS(0, 1)), tet)) {
             pos->y--;
         } else {
-            place = true;
+            lock = true;
         }
         rerender = true;
     }
@@ -128,7 +130,16 @@ static instructions_t process_controls(field_t *field, tetromino_t *tet,
         *pos = VEC2_ADD(*pos, offset);
         rerender = true;
     }
-    return (instructions_t){rerender, place};
+
+    // hard drop
+    if (frames_held[BUTTON_UP] == 1) {
+	add_score(score, pos->y - ghost_pos.y, 2);
+        *pos = ghost_pos;
+        rerender = true;
+        place = true;
+    }
+
+    return (instructions_t){rerender, lock, place};
 }
 
 static void update_next(uint8_t bag_index, tetromino_t *current_bag,
@@ -157,6 +168,19 @@ static void update_next(uint8_t bag_index, tetromino_t *current_bag,
 }
 
 static void update_hold(tetromino_t hold) {}
+
+static void update_ghost(field_t *field, tetromino_t *original,
+                         tetromino_t *ghost, coord_t pos, coord_t *ghost_pos) {
+    *ghost = *original;
+    ghost->style.texture = GHOST;
+
+    *ghost_pos = pos;
+
+    while (field_try_draw_tetromino(field, VEC2_SUB(*ghost_pos, POS(0, 1)),
+                                    ghost)) {
+        ghost_pos->y--;
+    }
+}
 
 uint8_t start(void) {
     buffer_t screen = buffer_alloc((screen_size_t){160, 120});
@@ -199,6 +223,8 @@ uint8_t start(void) {
     tetromino_random_bag(bag_b);
     bool game_over = false;
 
+    uint32_t frames_held[8] = {0};
+
     while (!game_over) {
         if (bag_index > 6) {
             tetromino_random_bag(current_bag);
@@ -215,7 +241,10 @@ uint8_t start(void) {
         update_next(bag_index, current_bag, other_bag);
 
         tetromino_t *tet = &current_bag[bag_index++];
+        tetromino_t ghost;
+
         coord_t pos = POS(FIELD_X_SPAWN, FIELD_Y_SPAWN);
+        coord_t ghost_pos = pos;
 
         // TODO: is this even needed?
         if (!field_try_draw_tetromino(&field, pos, tet) &&
@@ -228,27 +257,37 @@ uint8_t start(void) {
             break;
         }
 
-        uint32_t frames_held[8] = {0};
         uint32_t lock_penalty = 0;
         while (
             field_try_draw_tetromino(&field, VEC2_SUB(pos, POS(0, 1)), tet)) {
         airborne:
+            update_ghost(&field, tet, &ghost, pos, &ghost_pos);
+            field_draw_tetromino(&field, ghost_pos, &ghost);
             field_draw_tetromino(&field, pos, tet);
             update_field(&field);
             field_clear_tetromino(&field, pos, tet);
+            field_clear_tetromino(&field, ghost_pos, &ghost);
             uint32_t wait_until = timer_get_ms() + FALL_TIME(level);
             while (wait_until > timer_get_ms()) {
                 if (!input_is_available(0)) {
                     continue;
                 }
 
-                instructions_t inst =
-                    process_controls(&field, tet, &pos, frames_held, &score);
+                instructions_t inst = process_controls(
+                    &field, tet, &pos, ghost_pos, frames_held, &score);
 
                 if (inst.rerender) {
+                    update_ghost(&field, tet, &ghost, pos, &ghost_pos);
+                    field_draw_tetromino(&field, ghost_pos, &ghost);
                     field_draw_tetromino(&field, pos, tet);
                     update_field(&field);
                     field_clear_tetromino(&field, pos, tet);
+                    field_clear_tetromino(&field, ghost_pos, &ghost);
+                }
+
+                if (inst.place) {
+                    lock_penalty = LOCK_TIME;
+                    break;
                 }
 
                 if (!field_try_draw_tetromino(&field, VEC2_SUB(pos, POS(0, 1)),
@@ -256,13 +295,13 @@ uint8_t start(void) {
                     break;
                 }
 
-                if (inst.place) {
+                if (inst.lock) {
                     break;
                 }
 
                 // TODO...
                 if (score >= (level * 10 * 100)) {
-		    next_level();
+                    next_level();
                 }
 
                 gpu_block_ack();
@@ -285,7 +324,7 @@ uint8_t start(void) {
         lock_penalty += 200;
         while (wait_until > timer_get_ms()) {
             instructions_t inst =
-                process_controls(&field, tet, &pos, frames_held, &score);
+                process_controls(&field, tet, &pos, pos, frames_held, &score);
 
             if (inst.rerender) {
                 field_draw_tetromino(&field, pos, tet);
@@ -293,7 +332,7 @@ uint8_t start(void) {
                 field_clear_tetromino(&field, pos, tet);
             }
 
-            if (inst.place) {
+            if (inst.lock || inst.place) {
                 break;
             }
 
@@ -311,7 +350,7 @@ uint8_t start(void) {
 
         field_draw_tetromino(&field, pos, tet);
 
-        add_score(&score, field_clear_lines(&field) * 100);
+        add_score(&score, field_clear_lines(&field) * 100, 8);
     }
 
     if (game_over) {

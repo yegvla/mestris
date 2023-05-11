@@ -157,6 +157,9 @@ uint8_t field_clear_lines(field_t *field) {
                     }
                 }
             } while (is_line_empty);
+            if (cursor >= FIELD_HEIGHT) {
+                cursor = FIELD_HEIGHT - 1;
+            }
 
             bool has_changes = false;
             for (int8_t px_y = FIELD_RESOLUTION - 1; px_y >= 0; --px_y) {

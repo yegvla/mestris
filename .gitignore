@@ -9,7 +9,7 @@ src/*.o
 src/*.elf
 src/*.bin
 src/*.asset
-assets/TILE_*.m3if
+assets/*.m3if
 compile_commands.json
 assets/icon.m3ifp
 assets/icon_cropped.png
