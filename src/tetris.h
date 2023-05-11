@@ -66,22 +66,40 @@ typedef enum {
                ((blue & 0b100) << 5) | ((blue & 0b010) << 5) |                 \
                ((blue & 0b001) << 5))
 
+// ff -> 7
+// da -> 6
+// b6 -> 5
+// 92 -> 4
+// 6d -> 3
+// 49 -> 2
+// 24 -> 1
+// 00 -> 0
+
 #define PALETTE_RED COLOR(7, 4, 5), COLOR(4, 1, 1), COLOR(3, 0, 1)
 #define PALETTE_BLUE COLOR(4, 6, 7), COLOR(1, 3, 4), COLOR(0, 2, 4)
 #define PALETTE_GREEN COLOR(4, 6, 4), COLOR(1, 4, 2), COLOR(1, 2, 0)
 #define PALETTE_MAGENTA COLOR(6, 4, 7), COLOR(4, 2, 4), COLOR(2, 1, 3)
-#define PALETTE_ORANGE COLOR(6, 4, 7), COLOR(4, 2, 4), COLOR(2, 1, 3)
-#define PALETTE_CYAN COLOR(6, 4, 7), COLOR(4, 2, 4), COLOR(2, 1, 3)
+#define PALETTE_ORANGE COLOR(7, 5, 4), COLOR(7, 3, 2), COLOR(6, 2, 1)
+#define PALETTE_CYAN COLOR(5, 7, 7), COLOR(2, 6, 6), COLOR(0, 4, 4)
+#define PALETTE_PINK COLOR(7, 5, 7), COLOR(7, 2, 6), COLOR(5, 1, 5)
+#define PALETTE_YELLOW COLOR(7, 7, 4), COLOR(6, 6, 0), COLOR(5, 4, 0)
+#define PALETTE_GRAY COLOR(6, 6, 6), COLOR(4, 4, 4), COLOR(2, 2, 2)
 
 static const uint16_t PALETTES[][8] = {
     // Debug level
     [0] = {COLOR(0, 0, 0), COLOR(7, 7, 7), COLOR(7, 0, 0), COLOR(0, 7, 0),
            COLOR(0, 0, 7), COLOR(7, 7, 0), COLOR(7, 0, 7), COLOR(0, 7, 7)},
-    // Red & Blue
+
+    // Red & Blue: Fire & Water
     [1] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_RED, PALETTE_BLUE},
-    // Green & Magenta
+    // Green & Magenta: Withered Roses
     [2] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_GREEN, PALETTE_MAGENTA},
-    // Orange & Cyan
+    // Orange & Cyan: Sandy Beach
+    [3] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_ORANGE, PALETTE_CYAN},
+    // Pink & Yellow: Sweet Candy
+    [4] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_PINK, PALETTE_YELLOW},
+    // Gray & Green: Abandoned Castle
+    [5] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_GRAY, PALETTE_GREEN},
 };
 
 #endif // TETRIS_H
