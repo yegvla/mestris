@@ -336,7 +336,7 @@ uint8_t start(void) {
                 }
 
                 if (inst.place) {
-                    lock_penalty = LOCK_TIME;
+                    lock_penalty = LOCK_TIME + 1;
                     break;
                 }
 

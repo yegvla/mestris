@@ -84,6 +84,8 @@ typedef enum {
 #define PALETTE_PINK COLOR(7, 5, 7), COLOR(7, 2, 6), COLOR(5, 1, 5)
 #define PALETTE_YELLOW COLOR(7, 7, 4), COLOR(6, 6, 0), COLOR(5, 4, 0)
 #define PALETTE_GRAY COLOR(6, 6, 6), COLOR(4, 4, 4), COLOR(2, 2, 2)
+#define PALETTE_LGREEN COLOR(4, 6, 5), COLOR(3, 5, 3), COLOR(1, 4, 2)
+#define PALETTE_LRED COLOR(7, 5, 5), COLOR(6, 3, 3), COLOR(5, 1, 1)
 
 static const uint16_t PALETTES[][8] = {
     // Debug level
@@ -100,6 +102,12 @@ static const uint16_t PALETTES[][8] = {
     [4] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_PINK, PALETTE_YELLOW},
     // Gray & Green: Abandoned Castle
     [5] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_GRAY, PALETTE_GREEN},
+    // Light Green & Light Red: Juicy Watermelon
+    [6] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_LGREEN, PALETTE_LRED},
+    // Cyan & Blue: Blue Ocean
+    [7] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_CYAN, PALETTE_BLUE},
+    // Red & Orange: Hot Fire
+    [8] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_RED, PALETTE_ORANGE},
 };
 
 #endif // TETRIS_H

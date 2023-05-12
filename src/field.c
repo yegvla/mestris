@@ -156,7 +156,8 @@ uint8_t field_clear_lines(field_t *field) {
                         break;
                     }
                 }
-            } while (is_line_empty);
+            } while (is_line_empty && cursor < FIELD_HEIGHT);
+
             if (cursor >= FIELD_HEIGHT) {
                 cursor = FIELD_HEIGHT - 1;
             }
@@ -184,11 +185,10 @@ uint8_t field_clear_lines(field_t *field) {
             if (has_changes) {
                 gpu_block_ack();
                 gpu_block_frame();
-                gpu_send_buf(BACK_BUFFER, field->size.x,
+                gpu_send_buf(FRONT_BUFFER, field->size.x,
                              field->size.y - FIELD_OBSCURE, FIELD_POS_X,
                              FIELD_POS_Y,
                              (field->pixels + FIELD_OBSCURED_BYTES));
-                gpu_swap_buf();
             }
         }
     }
