@@ -14,23 +14,17 @@ typedef enum {
     T = 5,
     Z = 6,
     NONE = 7,
-} shape_t;
+} shape;
 
-typedef enum {
-    AIR = 0,
-    FILLED = 1,
-    BORDER = 2,
-    GHOST = 3,
-    GARBAGE = 4
-} texture_t;
+typedef enum { AIR = 0, FILLED = 1, BORDER = 2, GHOST = 3, GARBAGE = 4 } texture;
 
-typedef enum { DEG_0 = 0, DEG_90 = 1, DEG_180 = 2, DEG_270 = 3 } rotation_t;
+typedef enum { DEG_0 = 0, DEG_90 = 1, DEG_180 = 2, DEG_270 = 3 } rotation;
 typedef enum {
     COLOR_A = 0,
     COLOR_B = 1,
     COLOR_A_LIGHT = 2,
     COLOR_B_LIGHT = 3,
-} color_t;
+} color;
 
 typedef struct {
     int8_t x;
@@ -132,30 +126,30 @@ static const vec2i8 OFFSET_DATA_O[4] = {
 };
 
 typedef struct {
-    texture_t texture;
-    color_t color;
-} tile_t;
+    texture texture;
+    color color;
+} tile;
 
 typedef struct {
-    shape_t shape;
-    rotation_t rotation;
-    tile_t style;
-} tetromino_t;
+    shape shape;
+    rotation rotation;
+    tile style;
+} tetromino;
 
-tetromino_t tetromino_create(shape_t shape, texture_t texture, color_t color);
+tetromino tetromino_create(shape shape, texture texture, color color);
 
-tetromino_t tetromino_create_empty(void);
+tetromino tetromino_create_empty(void);
 
-tetromino_t tetromino_random(void);
+tetromino tetromino_random(void);
 
-void tetromino_random_bag(tetromino_t *bag);
+void tetromino_random_bag(tetromino *bag);
 
-const pixel_t *texture_get_pixles(texture_t texture);
+const pixel *texture_get_pixles(texture texture);
 
-color_t pixel_apply_color(pixel_t pixel, color_t color);
+color pixel_apply_color(pixel pixel, color color);
 
-color_t color_get_light_var(color_t color);
+color color_get_light_var(color color);
 
-color_t color_get_normal_var(color_t color);
+color color_get_normal_var(color color);
 
 #endif // TETROMINO_H

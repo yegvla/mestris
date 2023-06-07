@@ -6,8 +6,8 @@
 #include "timer.h"
 #include <stdint.h>
 
-field_t field_create() {
-    field_t field = buffer_alloc((screen_size_t){
+field field_create() {
+    field field = buffer_alloc((screen_size){
         .x = FIELD_WIDTH * FIELD_RESOLUTION,
         .y = FIELD_HEIGHT * FIELD_RESOLUTION,
     });
@@ -15,7 +15,7 @@ field_t field_create() {
     return field;
 }
 
-void field_draw_tetromino(field_t *field, coord_t pos, tetromino_t *tet) {
+void field_draw_tetromino(field *field, coord pos, tetromino *tet) {
     const vec2i8 *tiles = SHAPES[tet->shape][tet->rotation];
     for (uint8_t i = 0; i < 4; ++i) {
         vec2i8 tile_pos = tiles[i];
@@ -23,7 +23,7 @@ void field_draw_tetromino(field_t *field, coord_t pos, tetromino_t *tet) {
     }
 }
 
-void buffer_draw_tetromino(buffer_t *buf, coord_t pos, tetromino_t *tet) {
+void buffer_draw_tetromino(buffer *buf, coord pos, tetromino *tet) {
     const vec2i8 *tiles = SHAPES[tet->shape][tet->rotation];
     for (uint8_t i = 0; i < 4; ++i) {
         vec2i8 tile_pos = tiles[i];
@@ -31,7 +31,7 @@ void buffer_draw_tetromino(buffer_t *buf, coord_t pos, tetromino_t *tet) {
     }
 }
 
-void field_clear_tetromino(field_t *field, coord_t pos, tetromino_t *tet) {
+void field_clear_tetromino(field *field, coord pos, tetromino *tet) {
     const vec2i8 *tiles = SHAPES[tet->shape][tet->rotation];
     for (uint8_t i = 0; i < 4; ++i) {
         vec2i8 tile_pos = tiles[i];
@@ -39,11 +39,11 @@ void field_clear_tetromino(field_t *field, coord_t pos, tetromino_t *tet) {
     }
 }
 
-bool field_try_draw_tetromino(field_t *field, coord_t pos, tetromino_t *tet) {
+bool field_try_draw_tetromino(field *field, coord pos, tetromino *tet) {
     const vec2i8 *tiles = SHAPES[tet->shape][tet->rotation];
     for (uint8_t i = 0; i < 4; ++i) {
         vec2i8 tile_pos = tiles[i];
-        coord_t target_pos = VEC2_ADD(pos, tile_pos);
+        coord target_pos = VEC2_ADD(pos, tile_pos);
         if (target_pos.x >= FIELD_WIDTH || target_pos.y >= FIELD_HEIGHT) {
             return false;
         }
@@ -54,43 +54,41 @@ bool field_try_draw_tetromino(field_t *field, coord_t pos, tetromino_t *tet) {
     return true;
 }
 
-void field_draw_tile(field_t *field, coord_t pos, tile_t tile) {
+void field_draw_tile(field *field, coord pos, tile tile) {
     pos.y = FIELD_HEIGHT - 1 - pos.y;
-    coord_t px_pos = VEC2_SCALE(pos, FIELD_RESOLUTION);
-    const pixel_t *pixels = texture_get_pixles(tile.texture);
-    const buffer_t texture = (buffer_t){
+    coord px_pos = VEC2_SCALE(pos, FIELD_RESOLUTION);
+    const pixel *pixels = texture_get_pixles(tile.texture);
+    const buffer texture = (buffer){
         .pixels = (void *)pixels,
         .size = {FIELD_RESOLUTION, FIELD_RESOLUTION},
     };
     for (uint8_t x = 0; x < FIELD_RESOLUTION; ++x) {
         for (uint8_t y = 0; y < FIELD_RESOLUTION; ++y) {
-            pixel_t pixel = pixel_apply_color(
-                buffer_get_pixel(&texture, POS(x, y)), tile.color);
+            pixel pixel = pixel_apply_color(buffer_get_pixel(&texture, POS(x, y)), tile.color);
             buffer_set_pixel(field, VEC2_ADD(px_pos, POS(x, y)), pixel);
         }
     }
 }
 
-void buffer_draw_tile(buffer_t *buf, coord_t pos, tile_t tile) {
+void buffer_draw_tile(buffer *buf, coord pos, tile tile) {
     pos.y = (buf->size.y / FIELD_RESOLUTION) - 1 - pos.y;
-    coord_t px_pos = VEC2_SCALE(pos, FIELD_RESOLUTION);
-    const pixel_t *pixels = texture_get_pixles(tile.texture);
-    const buffer_t texture = (buffer_t){
+    coord px_pos = VEC2_SCALE(pos, FIELD_RESOLUTION);
+    const pixel *pixels = texture_get_pixles(tile.texture);
+    const buffer texture = (buffer){
         .pixels = (void *)pixels,
         .size = {FIELD_RESOLUTION, FIELD_RESOLUTION},
     };
     for (uint8_t x = 0; x < FIELD_RESOLUTION; ++x) {
         for (uint8_t y = 0; y < FIELD_RESOLUTION; ++y) {
-            pixel_t pixel = pixel_apply_color(
-                buffer_get_pixel(&texture, POS(x, y)), tile.color);
+            pixel pixel = pixel_apply_color(buffer_get_pixel(&texture, POS(x, y)), tile.color);
             buffer_set_pixel(buf, VEC2_ADD(px_pos, POS(x, y)), pixel);
         }
     }
 }
 
-void field_clear_tile(field_t *field, coord_t pos) {
+void field_clear_tile(field *field, coord pos) {
     pos.y = FIELD_HEIGHT - 1 - pos.y;
-    coord_t px_pos = VEC2_SCALE(pos, FIELD_RESOLUTION);
+    coord px_pos = VEC2_SCALE(pos, FIELD_RESOLUTION);
     for (uint8_t x = 0; x < FIELD_RESOLUTION; ++x) {
         for (uint8_t y = 0; y < FIELD_RESOLUTION; ++y) {
             buffer_set_pixel(field, VEC2_ADD(px_pos, POS(x, y)), COLOR_BG);
@@ -98,14 +96,14 @@ void field_clear_tile(field_t *field, coord_t pos) {
     }
 }
 
-bool field_is_air(field_t *field, coord_t pos) {
+bool field_is_air(field *field, coord pos) {
     pos.y = FIELD_HEIGHT - 1 - pos.y;
-    coord_t px_pos = VEC2_SCALE(pos, FIELD_RESOLUTION);
+    coord px_pos = VEC2_SCALE(pos, FIELD_RESOLUTION);
     px_pos.x += 2; // hack for not detecting placement prediction.
     return buffer_get_pixel(field, px_pos) == COLOR_BG;
 }
 
-uint8_t field_clear_lines(field_t *field) {
+uint8_t field_clear_lines(field *field) {
     uint8_t counter = 0;
     uint8_t cleared_lines[4] = {0xff, 0xff, 0xff, 0xff};
 
@@ -130,11 +128,9 @@ uint8_t field_clear_lines(field_t *field) {
             }
 
             for (uint8_t px_y = 0; px_y < FIELD_RESOLUTION; ++px_y) {
-                for (uint8_t px_x = 0; px_x < FIELD_WIDTH * FIELD_RESOLUTION;
-                     ++px_x) {
+                for (uint8_t px_x = 0; px_x < FIELD_WIDTH * FIELD_RESOLUTION; ++px_x) {
 
-                    uint8_t move_y_px =
-                        (FIELD_HEIGHT - 1 - y) * FIELD_RESOLUTION + px_y;
+                    uint8_t move_y_px = (FIELD_HEIGHT - 1 - y) * FIELD_RESOLUTION + px_y;
 
                     buffer_set_pixel(field, POS(px_x, move_y_px), COLOR_BG);
                 }
@@ -164,17 +160,11 @@ uint8_t field_clear_lines(field_t *field) {
 
             bool has_changes = false;
             for (int8_t px_y = FIELD_RESOLUTION - 1; px_y >= 0; --px_y) {
-                for (uint8_t px_x = 0; px_x < FIELD_WIDTH * FIELD_RESOLUTION;
-                     ++px_x) {
-                    coord_t origin = POS(
-                        px_x,
-                        (FIELD_HEIGHT - 1 - cursor) * FIELD_RESOLUTION + px_y);
-                    coord_t dest =
-                        POS(px_x, (FIELD_HEIGHT - 1 - line) * FIELD_RESOLUTION +
-                                      px_y);
-                    pixel_t pixel = buffer_get_pixel(field, origin);
-                    if (pixel != COLOR_BG ||
-                        buffer_get_pixel(field, dest) != COLOR_BG) {
+                for (uint8_t px_x = 0; px_x < FIELD_WIDTH * FIELD_RESOLUTION; ++px_x) {
+                    coord origin = POS(px_x, (FIELD_HEIGHT - 1 - cursor) * FIELD_RESOLUTION + px_y);
+                    coord dest = POS(px_x, (FIELD_HEIGHT - 1 - line) * FIELD_RESOLUTION + px_y);
+                    pixel pixel = buffer_get_pixel(field, origin);
+                    if (pixel != COLOR_BG || buffer_get_pixel(field, dest) != COLOR_BG) {
                         has_changes = true;
                     }
                     buffer_set_pixel(field, dest, pixel);
@@ -185,20 +175,17 @@ uint8_t field_clear_lines(field_t *field) {
             if (has_changes) {
                 gpu_block_ack();
                 gpu_block_frame();
-                gpu_send_buf(FRONT_BUFFER, field->size.x,
-                             field->size.y - FIELD_OBSCURE, FIELD_POS_X,
-                             FIELD_POS_Y,
-                             (field->pixels + FIELD_OBSCURED_BYTES));
+                gpu_send_buf(FRONT_BUFFER, field->size.x, field->size.y - FIELD_OBSCURE,
+                             FIELD_POS_X, FIELD_POS_Y, (field->pixels + FIELD_OBSCURED_BYTES));
             }
         }
     }
     return counter;
 }
 
-vec2i8 field_rotate_tetromino(field_t *field, coord_t pos, tetromino_t *tet,
-                              int8_t deg) {
-    rotation_t original_rot = tet->rotation;
-    rotation_t new_rot = (tet->rotation + deg) & 0b11;
+vec2i8 field_rotate_tetromino(field *field, coord pos, tetromino *tet, int8_t deg) {
+    rotation original_rot = tet->rotation;
+    rotation new_rot = (tet->rotation + deg) & 0b11;
     tet->rotation = new_rot;
     const vec2i8(*offset_data)[4][5];
     switch (tet->shape) {

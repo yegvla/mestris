@@ -1,6 +1,10 @@
 #ifndef TETRIS_H
 #define TETRIS_H
 
+#include "field.h"
+#include "gfx.h"
+#include "tetromino.h"
+#include <stdbool.h>
 #include <stdint.h>
 
 // Background and foreground colors, will always stay the same.
@@ -17,11 +21,17 @@
 #define COLOR_B2 6
 #define COLOR_B3 7
 
-#define MAX(a, b)                                                              \
-    ({                                                                         \
-        __typeof__(a) _a = (a);                                                \
-        __typeof__(b) _b = (b);                                                \
-        _a > _b ? _a : _b;                                                     \
+#define nullptr ((void *)0)
+
+#define CAN_MOVE(FRAMES_HELD, BTN)                                                                 \
+    ((FRAMES_HELD)[BTN] == 1 || ((FRAMES_HELD)[BTN] > 15 && FRAMES_HELD[BTN] % 5 == 0) ||          \
+     ((FRAMES_HELD)[BTN] > 30 && FRAMES_HELD[BTN] % 2 == 0) || ((FRAMES_HELD)[BTN] > 60))
+
+#define MAX(a, b)                                                                                  \
+    ({                                                                                             \
+        __typeof__(a) _a = (a);                                                                    \
+        __typeof__(b) _b = (b);                                                                    \
+        _a > _b ? _a : _b;                                                                         \
     })
 
 #define LOCK_TIME (1000)
@@ -48,7 +58,7 @@ typedef enum {
     TSPIN_DOUBLE,
     TSPIN_TRIPPLE,
     TSPIN_DOUBLE_MINI,
-} b2b_t;
+} b2b_method;
 
 #define FIELD_POS_X (55)
 #define FIELD_POS_Y (13)
@@ -59,12 +69,10 @@ typedef enum {
  * @param blue: 0b000 - 0b111
  * Generates a port config given the 3 colors.
  */
-#define COLOR(red, green, blue)                                                \
-    (uint16_t)(((red & 0b100) >> 1) | ((red & 0b010) << 9) |                   \
-               ((red & 0b001) << 11) | ((green & 0b100) << 10) |               \
-               ((green & 0b010) << 12) | ((green & 0b001) << 14) |             \
-               ((blue & 0b100) << 5) | ((blue & 0b010) << 5) |                 \
-               ((blue & 0b001) << 5))
+#define COLOR(red, green, blue)                                                                    \
+    (uint16_t)(((red & 0b100) >> 1) | ((red & 0b010) << 9) | ((red & 0b001) << 11) |               \
+               ((green & 0b100) << 10) | ((green & 0b010) << 12) | ((green & 0b001) << 14) |       \
+               ((blue & 0b100) << 5) | ((blue & 0b010) << 5) | ((blue & 0b001) << 5))
 
 // ff -> 7
 // da -> 6
@@ -89,8 +97,8 @@ typedef enum {
 
 static const uint16_t PALETTES[][8] = {
     // Debug level
-    [0] = {COLOR(0, 0, 0), COLOR(7, 7, 7), COLOR(7, 0, 0), COLOR(0, 7, 0),
-           COLOR(0, 0, 7), COLOR(7, 7, 0), COLOR(7, 0, 7), COLOR(0, 7, 7)},
+    [0] = {COLOR(0, 0, 0), COLOR(7, 7, 7), COLOR(7, 0, 0), COLOR(0, 7, 0), COLOR(0, 0, 7),
+           COLOR(7, 7, 0), COLOR(7, 0, 7), COLOR(0, 7, 7)},
 
     // Red & Blue: Fire & Water
     [1] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_RED, PALETTE_BLUE},
@@ -109,5 +117,39 @@ static const uint16_t PALETTES[][8] = {
     // Red & Orange: Hot Fire
     [8] = {COLOR(0, 0, 0), COLOR(7, 7, 7), PALETTE_RED, PALETTE_ORANGE},
 };
+
+/** Instructions for the game logic */
+typedef struct {
+    bool rerender;
+    bool lock;
+    bool place;
+    bool respawn;
+} instructions;
+
+/** Context for a game, every player has 1 context. This struct
+    contains everything a game needs to have. **/
+typedef struct {
+    uint32_t level;
+    field field;
+    tetromino *tet;
+    tetromino ghost;
+    coord pos;
+    coord ghost_pos;
+    tetromino hold;
+    bool has_respawned;
+    tetromino *bag_a;
+    tetromino *bag_b;
+    tetromino *current_bag;
+    tetromino *other_bag;
+    uint8_t bag_index;
+    uint32_t frames_held[8];
+    uint32_t score;
+    uint32_t lines_cleared;
+    b2b_method last_b2b;
+    uint32_t lock_penalty;
+    bool game_over;
+} game;
+
+void destroy_game(game *ctx);
 
 #endif // TETRIS_H

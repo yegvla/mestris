@@ -29,7 +29,7 @@
 #define PIXEL_MASK ((1 << BUFFER_BPP) - 1)
 
 #define POS(X, Y)                                                              \
-    (coord_t) { .x = X, .y = Y }
+    (coord) { .x = X, .y = Y }
 
 #define VEC2_ADD(LHS, RHS)                                                     \
     (typeof(LHS)) { .x = (LHS).x + (RHS).x, .y = (LHS).y + (RHS).y, }
@@ -56,28 +56,28 @@
 #define BIT(X) (1 << (X))
 
 /// Only the first 3 bytes are used.
-typedef uint8_t pixel_t;
+typedef uint8_t pixel;
 
 typedef struct {
     uint8_t x;
     uint8_t y;
-} coord_t, screen_size_t;
+} coord, screen_size;
 
 typedef struct {
-    screen_size_t size;
+    screen_size size;
     void *pixels;
-} buffer_t;
+} buffer;
 
-static buffer_t buffer_alloc(screen_size_t size) {
-    return (buffer_t){size, malloc(BUFFER_SIZE(size))};
+static buffer buffer_alloc(screen_size size) {
+    return (buffer){size, malloc(BUFFER_SIZE(size))};
 }
 
-static void buffer_destory(buffer_t *buf) {
+static void buffer_destory(buffer *buf) {
     free(buf->pixels);
     //free(buf);
 }
 
-static void buffer_set_pixel(buffer_t *buf, coord_t pos, pixel_t pixel) {
+static void buffer_set_pixel(buffer *buf, coord pos, pixel pixel) {
     uint16_t index = BUFFER_POSITION(buf, pos);
     uint32_t *pixels = (uint32_t *)(buf->pixels + (index / 8) * BUFFER_BPP);
     uint8_t shift = (7 - (index % 8)) * BUFFER_BPP;
@@ -85,13 +85,13 @@ static void buffer_set_pixel(buffer_t *buf, coord_t pos, pixel_t pixel) {
     *pixels = (*pixels & ~mask) | ((pixel & PIXEL_MASK) << shift);
 }
 
-static pixel_t buffer_get_pixel(const buffer_t *buf, coord_t pos) {
+static pixel buffer_get_pixel(const buffer *buf, coord pos) {
     uint16_t index = BUFFER_POSITION(buf, pos);
     uint32_t pixels = (*(uint32_t *)(buf->pixels + (index / 8) * BUFFER_BPP));
     return (pixels >> ((7 - (index % 8)) * BUFFER_BPP)) & PIXEL_MASK;
 }
 
-static void buffer_draw_line(buffer_t *rect, uint8_t x0, uint8_t y0,
+static void buffer_draw_line(buffer *rect, uint8_t x0, uint8_t y0,
                              uint8_t x1, uint8_t y1, uint8_t color) {
     bool steep = false;
     if (abs(x0 - x1) < abs(y0 - y1)) {

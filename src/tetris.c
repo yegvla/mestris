@@ -13,18 +13,15 @@
 #include <stdint.h>
 #include <timer.h>
 
-uint8_t level;
+void destroy_game(game *ctx) {
+    free(ctx->field.pixels);
+    free(ctx->bag_a);
+    free(ctx->bag_b);
+}
 
-#define CAN_MOVE(FRAMES_HELD, BTN)                                             \
-    (FRAMES_HELD[BTN] == 1 ||                                                  \
-     (FRAMES_HELD[BTN] > 15 && FRAMES_HELD[BTN] % 5 == 0) ||                   \
-     (FRAMES_HELD[BTN] > 30 && FRAMES_HELD[BTN] % 2 == 0) ||                   \
-     (FRAMES_HELD[BTN] > 60))
-
-static void update_field(field_t *field) {
-    gpu_send_buf(BACK_BUFFER, field->size.x, field->size.y - FIELD_OBSCURE,
-                 FIELD_POS_X, FIELD_POS_Y,
-                 (field->pixels + FIELD_OBSCURED_BYTES));
+static void update_field(field *field) {
+    gpu_send_buf(BACK_BUFFER, field->size.x, field->size.y - FIELD_OBSCURE, FIELD_POS_X,
+                 FIELD_POS_Y, (field->pixels + FIELD_OBSCURED_BYTES));
     gpu_swap_buf();
 }
 
@@ -38,12 +35,12 @@ static void update_frames_held(uint32_t *frames_held) {
     }
 }
 
-static void next_level() {
+static void next_level(game *ctx) {
     char txt[6];
-    sprintf(txt, "%05i", ++level);
+    sprintf(txt, "%05i", ++ctx->level);
     gpu_print_text(FRONT_BUFFER, 9, 27, COLOR_FG, COLOR_BG, txt);
     gpu_print_text(BACK_BUFFER, 9, 27, COLOR_FG, COLOR_BG, txt);
-    gpu_update_palette(PALETTES[level]);
+    gpu_update_palette(PALETTES[ctx->level]);
     gpu_block_ack();
 }
 
@@ -71,145 +68,129 @@ static void add_score(uint32_t *score, uint32_t add, uint8_t steps) {
     }
 }
 
-typedef struct {
-    bool rerender;
-    bool lock;
-    bool place;
-    bool respawn;
-} instructions_t;
-
-static instructions_t process_controls(field_t *field, tetromino_t *tet,
-                                       coord_t *pos, coord_t ghost_pos,
-                                       tetromino_t *hold, bool has_respawned,
-                                       tetromino_t *current_bag,
-                                       uint8_t *bag_index,
-                                       uint32_t *frames_held, uint32_t *score) {
+static instructions process_controls(game *ctx) {
     bool rerender = false;
     bool lock = false;
     bool place = false;
     bool respawn = false;
-    update_frames_held(frames_held);
+    update_frames_held(ctx->frames_held);
 
-    // move left
-    if (field_try_draw_tetromino(field, VEC2_SUB(*pos, POS(1, 0)), tet)) {
-        if CAN_MOVE (frames_held, BUTTON_LEFT) {
-            pos->x--;
+    // Move left
+    if (field_try_draw_tetromino(&ctx->field, VEC2_SUB(ctx->pos, POS(1, 0)), ctx->tet)) {
+        if CAN_MOVE (ctx->frames_held, BUTTON_LEFT) {
+            ctx->pos.x--;
             rerender = true;
         }
     }
 
-    // move right
-    if (field_try_draw_tetromino(field, VEC2_ADD(*pos, POS(1, 0)), tet)) {
-        if CAN_MOVE (frames_held, BUTTON_RIGHT) {
-            pos->x++;
+    // Move right
+    if (field_try_draw_tetromino(&ctx->field, VEC2_ADD(ctx->pos, POS(1, 0)), ctx->tet)) {
+        if CAN_MOVE (ctx->frames_held, BUTTON_RIGHT) {
+            ctx->pos.x++;
             rerender = true;
         }
     }
 
-    // move down
-    if CAN_MOVE (frames_held, BUTTON_DOWN) {
-        *score += 1;
-        update_score(*score);
-        if (field_try_draw_tetromino(field, VEC2_SUB(*pos, POS(0, 1)), tet)) {
-            pos->y--;
+    // Move down
+    if CAN_MOVE (ctx->frames_held, BUTTON_DOWN) {
+        ctx->score += 1;
+        update_score(ctx->score);
+        if (field_try_draw_tetromino(&ctx->field, VEC2_SUB(ctx->pos, POS(0, 1)), ctx->tet)) {
+            ctx->pos.y--;
         } else {
             lock = true;
             // for a better experience.
-            frames_held[BUTTON_DOWN] = 0;
+            ctx->frames_held[BUTTON_DOWN] = 0;
         }
         rerender = true;
     }
 
     int8_t rotate = DEG_0;
 
-    // rotate right
-    if (frames_held[BUTTON_A] == 1) {
+    // Rotate right
+    if (ctx->frames_held[BUTTON_A] == 1) {
         rotate = DEG_90;
     }
 
-    // rotate left
-    if (frames_held[BUTTON_B] == 1) {
+    // Rotate left
+    if (ctx->frames_held[BUTTON_B] == 1) {
         rotate = -DEG_90;
     }
 
+    // Rotate if a rotation was set.
     if (rotate != DEG_0) {
-        vec2i8 offset = field_rotate_tetromino(field, *pos, tet, rotate);
-        *pos = VEC2_ADD(*pos, offset);
+        vec2i8 offset = field_rotate_tetromino(&ctx->field, ctx->pos, ctx->tet, rotate);
+        ctx->pos = VEC2_ADD(ctx->pos, offset);
         rerender = true;
     }
 
-    // hard drop
-    if (frames_held[BUTTON_UP] == 1) {
-        add_score(score, (pos->y - ghost_pos.y) * 2, 2);
-        *pos = ghost_pos;
+    // Hard drop
+    if (ctx->frames_held[BUTTON_UP] == 1) {
+        add_score(&ctx->score, (ctx->pos.y - ctx->ghost_pos.y) * 2, 2);
+        ctx->pos = ctx->ghost_pos;
         rerender = true;
         place = true;
     }
 
-    if (frames_held[BUTTON_SELECT] == 1 && !has_respawned) {
-        if (hold->shape == NONE) {
-            *hold = *tet;
-            *tet = current_bag[*bag_index++];
+    if (ctx->frames_held[BUTTON_SELECT] == 1 && !ctx->has_respawned) {
+        if (ctx->hold.shape == NONE) {
+            ctx->hold = *(ctx->tet);
+            *(ctx->tet) = ctx->current_bag[ctx->bag_index++];
         } else {
-            tetromino_t held = *hold;
-            *hold = *tet;
-            *tet = held;
+            tetromino held = ctx->hold;
+            ctx->hold = *(ctx->tet);
+            *ctx->tet = held;
         }
         respawn = true;
     }
 
-    return (instructions_t){rerender, lock, place, respawn};
+    return (instructions){rerender, lock, place, respawn};
 }
 
-static void update_next(uint8_t bag_index, tetromino_t *current_bag,
-                        tetromino_t *other_bag) {
+static void update_next_preview(game *ctx) {
     // TODO: coordinates
-    buffer_t next_buf = buffer_alloc((screen_size_t){.x = 20, .y = 80});
+    buffer next_buf = buffer_alloc((screen_size){.x = 20, .y = 80});
     memset(next_buf.pixels, 0x00, BUFFER_SIZE(next_buf.size));
     uint8_t next_index = 0;
+    uint8_t bag_index = ctx->bag_index;
     bag_index++; // first one is the current one
     while (bag_index < 7 && next_index < 4) {
-        tetromino_t *next = &current_bag[bag_index++];
+        tetromino *next = &ctx->current_bag[bag_index++];
         buffer_draw_tetromino(&next_buf, POS(1, 14 - (4 * next_index++)), next);
     }
-    uint8_t tmp = 0;
+    bag_index = 0;
     while (next_index < 4) {
-        tetromino_t *next = &other_bag[tmp++];
+        tetromino *next = &ctx->other_bag[bag_index++];
         buffer_draw_tetromino(&next_buf, POS(1, 14 - (4 * next_index++)), next);
     }
 
-    gpu_send_buf(FRONT_BUFFER, next_buf.size.x, next_buf.size.y, 125, 26,
-                 next_buf.pixels);
-    gpu_send_buf(BACK_BUFFER, next_buf.size.x, next_buf.size.y, 125, 26,
-                 next_buf.pixels);
+    gpu_send_buf(FRONT_BUFFER, next_buf.size.x, next_buf.size.y, 125, 26, next_buf.pixels);
+    gpu_send_buf(BACK_BUFFER, next_buf.size.x, next_buf.size.y, 125, 26, next_buf.pixels);
     gpu_block_ack();
     buffer_destory(&next_buf);
 }
 
-static void update_hold(tetromino_t *hold) {
-    buffer_t hold_buf = buffer_alloc((screen_size_t){.x = 20, .y = 20});
+static void render_hold_piece(tetromino *hold) {
+    buffer hold_buf = buffer_alloc((screen_size){.x = 20, .y = 20});
     memset(hold_buf.pixels, 0x00, BUFFER_SIZE(hold_buf.size));
     if (hold->shape != NONE) {
         buffer_draw_tetromino(&hold_buf, POS(1, 1), hold);
     }
-    gpu_send_buf(FRONT_BUFFER, hold_buf.size.x, hold_buf.size.y, 15, 80,
-                 hold_buf.pixels);
-    gpu_send_buf(BACK_BUFFER, hold_buf.size.x, hold_buf.size.y, 15, 80,
-                 hold_buf.pixels);
+    gpu_send_buf(FRONT_BUFFER, hold_buf.size.x, hold_buf.size.y, 15, 80, hold_buf.pixels);
+    gpu_send_buf(BACK_BUFFER, hold_buf.size.x, hold_buf.size.y, 15, 80, hold_buf.pixels);
     gpu_block_ack();
     buffer_destory(&hold_buf);
 }
 
-static void update_ghost(field_t *field, tetromino_t *original,
-                         tetromino_t *ghost, coord_t pos, coord_t *ghost_pos) {
-    *ghost = *original;
-    ghost->style.texture = GHOST;
+static void update_ghost_piece(game *ctx) {
+    ctx->ghost = *(ctx->tet);
+    ctx->ghost.style.texture = GHOST;
 
-    *ghost_pos = pos;
+    ctx->ghost_pos = ctx->pos;
 
-    while (field_try_draw_tetromino(field, VEC2_SUB(*ghost_pos, POS(0, 1)),
-                                    ghost)) {
-        ghost_pos->y--;
+    while (
+        field_try_draw_tetromino(&ctx->field, VEC2_SUB(ctx->ghost_pos, POS(0, 1)), &ctx->ghost)) {
+        ctx->ghost_pos.y--;
     }
 }
 
@@ -218,7 +199,7 @@ static void display_message(char *msg) {
 }
 
 uint8_t start(void) {
-    buffer_t screen = buffer_alloc((screen_size_t){160, 120});
+    buffer screen = buffer_alloc((screen_size){160, 120});
     memset(screen.pixels, 0x00, BUFFER_SIZE(screen.size));
     buffer_draw_line(&screen, 54, 12, 105, 12, COLOR_FG);
     buffer_draw_line(&screen, 105, 12, 105, 116, COLOR_FG);
@@ -235,167 +216,184 @@ uint8_t start(void) {
     gpu_send_buf(FRONT_BUFFER, 29, 8, 120, 12, (void *)ASSET_TEXT_NEXT_M3IF);
     gpu_send_buf(BACK_BUFFER, 29, 8, 120, 12, (void *)ASSET_TEXT_NEXT_M3IF);
     buffer_destory(&screen);
-    level = 0;
-    next_level();
-    uint32_t score = 0;
-    update_score(score);
-    uint32_t lines_cleared = 0;
-    b2b_t last_b2b = BROKEN;
 
     rng_init();
-    tetromino_t queue[5];
-    for (uint8_t i = 0; i < 5; ++i) {
-        queue[i] = tetromino_random();
-    }
 
-    gpu_update_palette(PALETTES[level]);
+    // Create game context.
+    game ctx = (game){
+        .level = 0,
+        .field = field_create(),
+        .tet = nullptr,
+        .pos = POS(0, 0),
+        .ghost_pos = POS(0, 0),
+        .hold = tetromino_create_empty(),
+        .has_respawned = false,
+        .bag_a = malloc(sizeof(tetromino) * 7),
+        .bag_b = malloc(sizeof(tetromino) * 7),
+        .current_bag = nullptr,
+        .other_bag = nullptr,
+        .bag_index = 0,
+        .frames_held = {0},
+        .score = 0,
+        .lines_cleared = 0,
+        .last_b2b = BROKEN,
+        .lock_penalty = 0,
+        .game_over = false,
+    };
 
-    field_t field = field_create();
-    uint8_t bag_index = 0;
-    tetromino_t bag_a[7];
-    tetromino_t bag_b[7];
-    tetromino_t *current_bag = bag_a;
-    tetromino_t *other_bag = bag_b;
-    tetromino_random_bag(bag_a);
-    tetromino_random_bag(bag_b);
-    tetromino_t hold = tetromino_create_empty();
+    // Populate bags.
+    tetromino_random_bag(ctx.bag_a);
+    tetromino_random_bag(ctx.bag_b);
 
-    bool game_over = false;
-    coord_t pos;
-    coord_t ghost_pos;
+    // Define "current" and "other" bags.
+    ctx.current_bag = ctx.bag_a;
+    ctx.other_bag = ctx.bag_b;
 
-    uint32_t frames_held[8] = {0};
+    // Display initaial score
+    update_score(ctx.score);
 
-    while (!game_over) {
-        if (bag_index > 6) {
-            tetromino_random_bag(current_bag);
-            if (current_bag == bag_a) {
-                current_bag = bag_b;
-                other_bag = bag_a;
+    // Start at level 1
+    next_level(&ctx);
+
+    while (!ctx.game_over) {
+        // If we reach the end of a bag we switch the current bag to
+        // the other bag, we need 2 bags because we display up to 4
+        // next pieces.
+        if (ctx.bag_index > 6) {
+            tetromino_random_bag(ctx.current_bag);
+            if (ctx.current_bag == ctx.bag_b) {
+                ctx.current_bag = ctx.bag_b;
+                ctx.other_bag = ctx.bag_a;
             } else {
-                current_bag = bag_a;
-                other_bag = bag_b;
+                ctx.current_bag = ctx.bag_a;
+                ctx.other_bag = ctx.bag_b;
             }
-            bag_index = 0;
+            ctx.bag_index = 0;
         }
 
-        update_next(bag_index, current_bag, other_bag);
-
-        tetromino_t *tet = &current_bag[bag_index++];
-        tetromino_t ghost;
-        bool has_respawned = false;
+        update_next_preview(&ctx);
+        ctx.tet = &ctx.current_bag[ctx.bag_index++];
+	ctx.has_respawned = false;
 
     respawn:
-        pos = POS(FIELD_X_SPAWN, FIELD_Y_SPAWN);
-        ghost_pos = pos;
+        ctx.pos = POS(FIELD_X_SPAWN, FIELD_Y_SPAWN);
+        ctx.ghost_pos = ctx.pos;
 
         // TODO: is this even needed?
-        if (!field_try_draw_tetromino(&field, pos, tet) &&
-            field_try_draw_tetromino(&field, VEC2_ADD(pos, POS(0, 1)), tet)) {
-            pos.y++;
+        if (!field_try_draw_tetromino(&ctx.field, ctx.pos, ctx.tet) &&
+            field_try_draw_tetromino(&ctx.field, VEC2_ADD(ctx.pos, POS(0, 1)), ctx.tet)) {
+            ctx.pos.y++;
         }
 
-        if (!field_try_draw_tetromino(&field, pos, tet)) {
-            game_over = true;
+        if (!field_try_draw_tetromino(&ctx.field, ctx.pos, ctx.tet)) {
+            ctx.game_over = true;
             break;
         }
 
-        uint32_t lock_penalty = 0;
-        while (
-            field_try_draw_tetromino(&field, VEC2_SUB(pos, POS(0, 1)), tet)) {
+	ctx.lock_penalty = 0;
+        while (field_try_draw_tetromino(&ctx.field, VEC2_SUB(ctx.pos, POS(0, 1)), ctx.tet)) {
         airborne:
-            update_ghost(&field, tet, &ghost, pos, &ghost_pos);
-            field_draw_tetromino(&field, ghost_pos, &ghost);
-            field_draw_tetromino(&field, pos, tet);
-            update_field(&field);
-            field_clear_tetromino(&field, pos, tet);
-            field_clear_tetromino(&field, ghost_pos, &ghost);
-            uint32_t wait_until = timer_get_ms() + FALL_TIME(level);
+            update_ghost_piece(&ctx);
+            field_draw_tetromino(&ctx.field, ctx.ghost_pos, &ctx.ghost);
+            field_draw_tetromino(&ctx.field, ctx.pos, ctx.tet);
+            update_field(&ctx.field);
+            field_clear_tetromino(&ctx.field, ctx.pos, ctx.tet);
+            field_clear_tetromino(&ctx.field, ctx.ghost_pos, &ctx.ghost);
+            uint32_t wait_until = timer_get_ms() + FALL_TIME(ctx.level);
             while (wait_until > timer_get_ms()) {
-                if (!input_is_available(0)) {
+                if (!input_is_available(CONTROLLER_1)) {
                     continue;
                 }
 
-                instructions_t inst = process_controls(
-                    &field, tet, &pos, ghost_pos, &hold, has_respawned,
-                    current_bag, &bag_index, frames_held, &score);
+                // While we wait for the piece to fall down, we accept
+                // controls and process the resulting instructions
+                // from the user.  `process_controls` already changes
+                // the state of ctx appropriate to the inputed
+                // controls, but it can't control the game loop.
+                instructions inst = process_controls(&ctx);
 
+                // Happens when the user puts a piece to hold, we just
+                // need to respawn as the switching was already taken
+                // care of by `process_controls`.
                 if (inst.respawn) {
-		    update_hold(&hold);
-                    has_respawned = true;
+                    render_hold_piece(&ctx.hold);
+                    ctx.has_respawned = true;
                     goto respawn;
                 }
 
+                // If the input of the user resulted into changes on
+                // the display, we need to display them.
                 if (inst.rerender) {
-                    update_ghost(&field, tet, &ghost, pos, &ghost_pos);
-                    field_draw_tetromino(&field, ghost_pos, &ghost);
-                    field_draw_tetromino(&field, pos, tet);
-                    update_field(&field);
-                    field_clear_tetromino(&field, pos, tet);
-                    field_clear_tetromino(&field, ghost_pos, &ghost);
+                    update_ghost_piece(&ctx);
+                    field_draw_tetromino(&ctx.field, ctx.ghost_pos, &ctx.ghost);
+                    field_draw_tetromino(&ctx.field, ctx.pos, ctx.tet);
+                    update_field(&ctx.field);
+                    field_clear_tetromino(&ctx.field, ctx.pos, ctx.tet);
+                    field_clear_tetromino(&ctx.field, ctx.ghost_pos, &ctx.ghost);
                 }
 
+                // If we are instructed to place a piece while still
+                // airborne, it basically means we need to hard-drop
+                // the piece.
                 if (inst.place) {
-                    lock_penalty = LOCK_TIME + 1;
+                    // We don't want to lock the piece, thats why we
+                    // set a lock penalty higher than the lock
+                    // time. Making it skip the lock process.
+                    ctx.lock_penalty = LOCK_TIME + 1;
                     break;
                 }
 
-                if (!field_try_draw_tetromino(&field, VEC2_SUB(pos, POS(0, 1)),
-                                              tet)) {
-                    break;
-                }
-
+                // When a piece needs to be locked it reached a ground
+                // and is not airborne anymore.
                 if (inst.lock) {
                     break;
                 }
 
-                if (lines_cleared >= level * 10) {
-                    lines_cleared -= level * 10;
-                    next_level();
+                // If we can't draw the piece below it self, we
+                // reached ground and lock the piece.
+                if (!field_try_draw_tetromino(&ctx.field, VEC2_SUB(ctx.pos, POS(0, 1)), ctx.tet)) {
+                    break;
                 }
 
                 gpu_block_ack();
                 gpu_block_frame();
             }
-            pos.y--;
+            ctx.pos.y--;
         }
 
-        if (!field_try_draw_tetromino(&field, pos, tet)) {
-            pos.y++;
+        if (!field_try_draw_tetromino(&ctx.field, ctx.pos, ctx.tet)) {
+            ctx.pos.y++;
         }
 
-        tet->style.color = color_get_light_var(tet->style.color);
+        ctx.tet->style.color = color_get_light_var(ctx.tet->style.color);
 
-        field_draw_tetromino(&field, pos, tet);
-        update_field(&field);
-        field_clear_tetromino(&field, pos, tet);
+        field_draw_tetromino(&ctx.field, ctx.pos, ctx.tet);
+        update_field(&ctx.field);
+        field_clear_tetromino(&ctx.field, ctx.pos, ctx.tet);
 
-        uint32_t wait_until = timer_get_ms() + LOCK_TIME - lock_penalty;
-        lock_penalty += 200;
+        uint32_t wait_until = timer_get_ms() + LOCK_TIME - ctx.lock_penalty;
+        ctx.lock_penalty += 200;
         while (wait_until > timer_get_ms()) {
-            instructions_t inst = process_controls(
-                &field, tet, &pos, ghost_pos, &hold, has_respawned, current_bag,
-                &bag_index, frames_held, &score);
+            instructions inst = process_controls(&ctx);
 
             if (inst.respawn) {
-		update_hold(&hold);
-                has_respawned = true;
+                render_hold_piece(&ctx.hold);
+                ctx.has_respawned = true;
                 goto respawn;
             }
 
             if (inst.rerender) {
-                field_draw_tetromino(&field, pos, tet);
-                update_field(&field);
-                field_clear_tetromino(&field, pos, tet);
+                field_draw_tetromino(&ctx.field, ctx.pos, ctx.tet);
+                update_field(&ctx.field);
+                field_clear_tetromino(&ctx.field, ctx.pos, ctx.tet);
             }
 
             if (inst.lock || inst.place) {
                 break;
             }
 
-            if (field_try_draw_tetromino(&field, VEC2_SUB(pos, POS(0, 1)),
-                                         tet)) {
-                tet->style.color = color_get_normal_var(tet->style.color);
+            if (field_try_draw_tetromino(&ctx.field, VEC2_SUB(ctx.pos, POS(0, 1)), ctx.tet)) {
+                ctx.tet->style.color = color_get_normal_var(ctx.tet->style.color);
                 goto airborne;
             }
 
@@ -403,49 +401,55 @@ uint8_t start(void) {
             gpu_block_frame();
         }
 
-        tet->style.color = color_get_normal_var(tet->style.color);
+        ctx.tet->style.color = color_get_normal_var(ctx.tet->style.color);
 
-        field_draw_tetromino(&field, pos, tet);
+        field_draw_tetromino(&ctx.field, ctx.pos, ctx.tet);
 
-        uint8_t lines = field_clear_lines(&field);
-        lines_cleared += lines;
+        uint8_t lines = field_clear_lines(&ctx.field);
+        ctx.lines_cleared += lines;
 
         uint32_t reward = 0;
 
         switch (lines) {
         case 1:
-            reward = SCORE_SINGLE(level);
-            last_b2b = BROKEN;
+            reward = SCORE_SINGLE(ctx.level);
+            ctx.last_b2b = BROKEN;
             break;
         case 2:
             display_message("DOUBLE");
-            reward = SCORE_DOUBLE(level);
-            last_b2b = BROKEN;
+            reward = SCORE_DOUBLE(ctx.level);
+            ctx.last_b2b = BROKEN;
             break;
         case 3:
             display_message("TRIPLE");
-            reward = SCORE_TRIPLE(level);
-            last_b2b = BROKEN;
+            reward = SCORE_TRIPLE(ctx.level);
+            ctx.last_b2b = BROKEN;
             break;
         case 4:
-            if (last_b2b == TETRIS) {
+            if (ctx.last_b2b == TETRIS) {
                 display_message("B2B TETRIS");
-                reward = SCORE_B2B_TETRIS(level);
+                reward = SCORE_B2B_TETRIS(ctx.level);
             } else {
                 display_message("TETRIS");
-                reward = SCORE_TETRIS(level);
+                reward = SCORE_TETRIS(ctx.level);
             }
-            last_b2b = TETRIS;
+            ctx.last_b2b = TETRIS;
             break;
         }
 
-        add_score(&score, reward, 8);
-        if (reward > SCORE_SINGLE(level)) {
+        add_score(&ctx.score, reward, 8);
+        if (reward > SCORE_SINGLE(ctx.level)) {
             display_message("          ");
+        }
+
+        // check if we need to switch level.
+        if (ctx.lines_cleared >= ctx.level * 10) {
+            ctx.lines_cleared -= ctx.level * 10;
+            next_level(&ctx);
         }
     }
 
-    if (game_over) {
+    if (ctx.game_over) {
         gpu_print_text(FRONT_BUFFER, 50, 50, 1, 0, "GAME OVER");
         timer_block_ms(1000);
         goto tetris_quit;
@@ -455,8 +459,6 @@ uint8_t start(void) {
         ;
 
 tetris_quit:
-    buffer_destory(&field);
-    free(bag_a);
-    free(bag_b);
+    destroy_game(&ctx);
     return CODE_EXIT;
 }

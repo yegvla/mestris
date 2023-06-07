@@ -10,41 +10,40 @@
 #include <rng.h>
 #include <stdint.h>
 
-tetromino_t tetromino_create(shape_t shape, texture_t texture, color_t color) {
-    return (tetromino_t){.shape = shape,
-                         .rotation = DEG_0,
-                         .style = {
-                             .texture = texture,
-                             .color = color,
-                         }};
+tetromino tetromino_create(shape shape, texture texture, color color) {
+    return (tetromino){.shape = shape,
+                       .rotation = DEG_0,
+                       .style = {
+                           .texture = texture,
+                           .color = color,
+                       }};
 }
 
-tetromino_t tetromino_create_empty(void) {
-    return (tetromino_t){.shape = NONE,
-                         .rotation = DEG_0,
-                         .style = {
-                             .texture = 0,
-                             .color = 0,
-                         }};
+tetromino tetromino_create_empty(void) {
+    return (tetromino){.shape = NONE,
+                       .rotation = DEG_0,
+                       .style = {
+                           .texture = 0,
+                           .color = 0,
+                       }};
 }
 
-tetromino_t tetromino_random(void) {
+tetromino tetromino_random(void) {
     uint32_t random = rng_u32();
-    return (tetromino_t){.rotation = DEG_0,
-                         .shape = random % 7,
-                         .style = {
-                             .color = ((random >> 4) & 1),
-                             .texture = 1 + ((random >> 5) & 1),
-                         }};
+    return (tetromino){.rotation = DEG_0,
+                       .shape = random % 7,
+                       .style = {
+                           .color = ((random >> 4) & 1),
+                           .texture = 1 + ((random >> 5) & 1),
+                       }};
 }
 
-void tetromino_random_bag(tetromino_t *bag) {
-    static const uint8_t ALL_SHAPES =
-        BIT(I) | BIT(J) | BIT(L) | BIT(O) | BIT(S) | BIT(T) | BIT(Z);
+void tetromino_random_bag(tetromino *bag) {
+    static const uint8_t ALL_SHAPES = BIT(I) | BIT(J) | BIT(L) | BIT(O) | BIT(S) | BIT(T) | BIT(Z);
     uint8_t bag_index = 0;
     uint8_t shapes_used = 0x00;
     while (shapes_used != ALL_SHAPES) {
-        tetromino_t pick = tetromino_random();
+        tetromino pick = tetromino_random();
         if (shapes_used & BIT(pick.shape)) {
             continue;
         }
@@ -53,7 +52,7 @@ void tetromino_random_bag(tetromino_t *bag) {
     }
 }
 
-const pixel_t *texture_get_pixles(texture_t texture) {
+const pixel *texture_get_pixles(texture texture) {
     switch (texture) {
     case AIR:
         return ASSET_TILE_AIR_M3IF;
@@ -70,7 +69,7 @@ const pixel_t *texture_get_pixles(texture_t texture) {
     }
 }
 
-color_t pixel_apply_color(pixel_t pixel, color_t color) {
+color pixel_apply_color(pixel pixel, color color) {
     // draw with a lighter color
     if (color == COLOR_A_LIGHT || color == COLOR_B_LIGHT) {
         switch (pixel) {
@@ -94,7 +93,7 @@ color_t pixel_apply_color(pixel_t pixel, color_t color) {
     return pixel;
 }
 
-color_t color_get_light_var(color_t color) {
+color color_get_light_var(color color) {
     switch (color) {
     case COLOR_A:
     case COLOR_B:
@@ -104,7 +103,7 @@ color_t color_get_light_var(color_t color) {
     }
 }
 
-color_t color_get_normal_var(color_t color) {
+color color_get_normal_var(color color) {
     switch (color) {
     case COLOR_A_LIGHT:
     case COLOR_B_LIGHT:

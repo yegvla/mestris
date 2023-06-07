@@ -1,5 +1,5 @@
 ---
 BasedOnStyle: LLVM
+ColumnLimit: 100
 IndentWidth: '4'
-
 ...

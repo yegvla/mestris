@@ -38,39 +38,37 @@
 #define FIELD_WIDTH 10
 #define FIELD_HEIGHT 22
 #define FIELD_OBSCURE 8
-#define FIELD_OBSCURED_BYTES                                                   \
-    ((FIELD_OBSCURE * FIELD_RESOLUTION * FIELD_WIDTH * BUFFER_BPP) / 8)
+#define FIELD_OBSCURED_BYTES ((FIELD_OBSCURE * FIELD_RESOLUTION * FIELD_WIDTH * BUFFER_BPP) / 8)
 #define FIELD_RESOLUTION 5
 
 #define FIELD_Y_SPAWN 19
 #define FIELD_X_SPAWN 4
 
-typedef buffer_t field_t;
+typedef buffer field;
 
-field_t field_create();
+field field_create();
 
-void field_draw_tetromino(field_t *field, coord_t pos, tetromino_t *tet);
+void field_draw_tetromino(field *field, coord pos, tetromino *tet);
 
-void buffer_draw_tetromino(buffer_t *buf, coord_t pos, tetromino_t *tet);
+void buffer_draw_tetromino(buffer *buf, coord pos, tetromino *tet);
 
-void field_clear_tetromino(field_t *field, coord_t pos, tetromino_t *tet);
+void field_clear_tetromino(field *field, coord pos, tetromino *tet);
 
-void field_draw_tile(field_t *field, coord_t pos, tile_t tile);
+void field_draw_tile(field *field, coord pos, tile tile);
 
-void buffer_draw_tile(buffer_t *buf, coord_t pos, tile_t tile);
+void buffer_draw_tile(buffer *buf, coord pos, tile tile);
 
-bool field_try_draw_tetromino(field_t *field, coord_t pos, tetromino_t *tet);
+bool field_try_draw_tetromino(field *field, coord pos, tetromino *tet);
 
-bool field_is_air(field_t *field, coord_t pos);
+bool field_is_air(field *field, coord pos);
 
-void field_clear_tile(field_t *field, coord_t pos);
+void field_clear_tile(field *field, coord pos);
 
-uint8_t field_clear_lines(field_t *field);
+uint8_t field_clear_lines(field *field);
 
 // deg = 1  -> clockwise
 // deg = -1 -> counter-clockwise
 // deg = 2  -> 180°
-vec2i8 field_rotate_tetromino(field_t *field, coord_t pos, tetromino_t *tet,
-                              int8_t deg);
+vec2i8 field_rotate_tetromino(field *field, coord pos, tetromino *tet, int8_t deg);
 
 #endif // FIELD_H
